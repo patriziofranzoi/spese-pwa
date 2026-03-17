@@ -534,3 +534,85 @@ function applyUpdate() {
     pendingRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
   }
 }
+
+// ─── Export CSV Settimana ────────────────────────────────
+function esportaCSVSettimana() {
+  const tutteSpese = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const chiave = d.toISOString().split('T')[0];
+    const arr = JSON.parse(localStorage.getItem(keyPerData(chiave)) || '[]');
+    arr.forEach(s => tutteSpese.push(s));
+  }
+
+  if (tutteSpese.length === 0) {
+    alert("Nessuna spesa nell'ultima settimana.");
+    return;
+  }
+
+  tutteSpese.sort((a, b) => new Date(b.data) - new Date(a.data));
+
+  const intestazioni = [
+    'Data', 'Contanti', 'Bancomat Mio', 'Bancomat Condiviso',
+    "Bancomat Papa", 'Hype', 'Satispay', 'Bonifico', 'Altro',
+    'Tipologia', 'Luogo / Supermercato', 'Euro/Litro', 'Litri', 'Km', 'Note'
+  ];
+
+  const righe = [intestazioni.join(';')];
+
+  tutteSpese.forEach(s => {
+    const imp = s.importo.toFixed(2).replace('.', ',');
+    const pag = s.tipoPagamento.toLowerCase();
+    const contanti     = pag === 'contanti'             ? imp : '';
+    const bancMio      = pag === 'bancomat - mio'       ? imp : '';
+    const bancCond     = pag === 'bancomat - condiviso' ? imp : '';
+    const bancPapa     = pag === 'bancomat - papà'      ? imp : '';
+    const hype         = pag === 'hype'                 ? imp : '';
+    const satispay     = pag === 'satispay'             ? imp : '';
+    const bonifico     = pag === 'bonifico'             ? imp : '';
+    const noti = ['contanti','bancomat - mio','bancomat - condiviso','bancomat - papà','hype','satispay','bonifico'];
+    const altro        = !noti.includes(pag)            ? imp : '';
+
+    righe.push([
+      formatData(s.data),
+      contanti, bancMio, bancCond, bancPapa,
+      hype, satispay, bonifico, altro,
+      s.tipologia || '',
+      s.luogo || '',
+      s.euroLitro ? String(s.euroLitro).replace('.', ',') : '',
+      s.numLitri  ? String(s.numLitri).replace('.', ',')  : '',
+      s.km || '',
+      (s.descrizione || '').replace(/;/g, ',')
+    ].join(';'));
+  });
+
+  const totale = tutteSpese.reduce((acc, s) => acc + s.importo, 0);
+  righe.push('');
+  righe.push('TOTALE SETTIMANA;;;;;;;;;' + totale.toFixed(2).replace('.', ','));
+
+  const bom = '\uFEFF';
+  const csvContent = bom + righe.join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+
+  const dataInizio = formatData(new Date(new Date().setDate(new Date().getDate() - 6)).toISOString().split('T')[0]);
+  const dataFine   = formatData(oggi());
+  const nomeFile   = 'Spese_' + dataInizio.replace(/\//g,'-') + '_' + dataFine.replace(/\//g,'-') + '.csv';
+
+  const file = new File([blob], nomeFile, { type: 'text/csv' });
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    navigator.share({ files: [file], title: 'Spese settimana ' + dataInizio + ' - ' + dataFine })
+      .catch(() => scaricaFile(blob, nomeFile));
+  } else {
+    scaricaFile(blob, nomeFile);
+  }
+}
+
+function scaricaFile(blob, nomeFile) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nomeFile;
+  a.click();
+  URL.revokeObjectURL(url);
+}

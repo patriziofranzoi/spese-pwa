@@ -155,15 +155,18 @@ input[readonly] { background: #f5f5f5; color: #888; }
 .totale { margin-top: 12px; font-size: 1.1rem; font-weight: 700; text-align: right; color: #1976d2; }
 
 /* Azioni Export */
-.azioni-export { display: flex; gap: 12px; margin-top: 16px; }
+.azioni-export { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
 .azioni-export button {
-  flex: 1; padding: 12px; border: none; border-radius: 10px;
-  font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s;
+  flex: 1; min-width: calc(33% - 8px); padding: 12px; border: none;
+  border-radius: 10px; font-size: 0.9rem; font-weight: 600;
+  cursor: pointer; transition: background 0.2s;
 }
-.azioni-export button:first-child { background: #e53935; color: white; }
-.azioni-export button:first-child:hover { background: #c62828; }
-.azioni-export button:last-child { background: #43a047; color: white; }
-.azioni-export button:last-child:hover { background: #2e7d32; }
+.azioni-export button:nth-child(1) { background: #e53935; color: white; }
+.azioni-export button:nth-child(1):hover { background: #c62828; }
+.azioni-export button:nth-child(2) { background: #43a047; color: white; }
+.azioni-export button:nth-child(2):hover { background: #2e7d32; }
+.azioni-export button:nth-child(3) { background: #1976d2; color: white; }
+.azioni-export button:nth-child(3):hover { background: #1565c0; }
 
 /* ─── Archivio ─── */
 #archivio-lista-date main,
