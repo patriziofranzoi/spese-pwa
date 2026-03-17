@@ -11,11 +11,35 @@ header {
   background: #1976d2;
   color: white;
   padding: 16px 20px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 
-header h1 { font-size: 1.4rem; }
+header h1 { font-size: 1.3rem; flex: 1; text-align: center; }
+
+.btn-archivio {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.5);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.btn-archivio:hover { background: rgba(255,255,255,0.3); }
+
+.btn-back {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
 
 main { max-width: 600px; margin: 20px auto; padding: 0 12px; }
 
@@ -55,12 +79,7 @@ select {
 }
 
 input:focus, select:focus { border-color: #1976d2; }
-
-input[readonly] {
-  background: #f5f5f5;
-  color: #888;
-  cursor: not-allowed;
-}
+input[readonly] { background: #f5f5f5; color: #888; }
 
 .sub-group {
   background: #f5f9ff;
@@ -75,242 +94,145 @@ input[readonly] {
 
 .foto-btn-group { display: flex; gap: 10px; margin-top: 6px; }
 .foto-btn-group button {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #1976d2;
-  background: white;
-  color: #1976d2;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.9rem;
+  flex: 1; padding: 10px;
+  border: 1px solid #1976d2; background: white; color: #1976d2;
+  border-radius: 8px; cursor: pointer; font-size: 0.9rem;
 }
 .foto-btn-group button:hover { background: #e3f0ff; }
 
-#foto-preview-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
+#foto-preview-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 
 .foto-thumb-wrap { position: relative; }
-.foto-thumb-wrap img {
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-}
+.foto-thumb-wrap img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; }
 .foto-thumb-wrap .del-foto {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  background: #e53935;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  font-size: 0.7rem;
-  cursor: pointer;
-  line-height: 20px;
-  text-align: center;
+  position: absolute; top: -6px; right: -6px;
+  background: #e53935; color: white; border: none;
+  border-radius: 50%; width: 20px; height: 20px;
+  font-size: 0.7rem; cursor: pointer; line-height: 20px; text-align: center;
 }
 
 .btn-aggiungi {
-  width: 100%;
-  margin-top: 16px;
-  padding: 12px;
-  background: #1976d2;
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
+  width: 100%; margin-top: 16px; padding: 12px;
+  background: #1976d2; color: white; border: none;
+  border-radius: 10px; font-size: 1rem; font-weight: 600;
+  cursor: pointer; transition: background 0.2s;
 }
 .btn-aggiungi:hover { background: #1565c0; }
+
+.btn-annulla {
+  width: 100%; margin-top: 8px; padding: 10px;
+  background: #f5f5f5; color: #e53935; border: 1px solid #e53935;
+  border-radius: 10px; font-size: 0.95rem; font-weight: 600;
+  cursor: pointer;
+}
 
 /* Lista spese */
 .lista-section { margin-top: 10px; }
 
 .spesa-card {
-  background: white;
-  border-radius: 10px;
-  padding: 14px 16px;
-  margin-bottom: 10px;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.07);
-  position: relative;
+  background: white; border-radius: 10px;
+  padding: 14px 16px; margin-bottom: 10px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.07); position: relative;
 }
 
-.spesa-card .importo-badge {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #1976d2;
-}
+.card-azioni { position: absolute; top: 10px; right: 10px; display: flex; gap: 8px; }
+.btn-modifica { background: transparent; border: none; font-size: 1rem; cursor: pointer; }
+.btn-elimina { background: transparent; border: none; color: #e53935; font-size: 1rem; cursor: pointer; }
 
-.spesa-card .meta {
-  font-size: 0.82rem;
-  color: #888;
-  margin-top: 4px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.spesa-card .meta span { margin-right: 4px; }
-
-.spesa-card .desc {
-  font-size: 0.9rem;
-  margin-top: 4px;
-  color: #555;
-}
-
-.spesa-card .foto-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.spesa-card .foto-row img {
-  width: 70px;
-  height: 70px;
-  object-fit: cover;
-  border-radius: 6px;
-  border: 1px solid #eee;
-  cursor: pointer;
-}
-
-.btn-elimina {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: transparent;
-  border: none;
-  color: #e53935;
-  font-size: 1.1rem;
-  cursor: pointer;
-}
+.spesa-card .importo-badge { font-size: 1.3rem; font-weight: 700; color: #1976d2; }
+.spesa-card .meta { font-size: 0.82rem; color: #888; margin-top: 4px; display: flex; flex-wrap: wrap; gap: 6px; }
+.spesa-card .desc { font-size: 0.9rem; margin-top: 4px; color: #555; }
+.spesa-card .foto-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.spesa-card .foto-row img { width: 70px; height: 70px; object-fit: cover; border-radius: 6px; border: 1px solid #eee; cursor: pointer; }
 
 /* Riepilogo */
 .riepilogo {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-  margin-top: 10px;
+  background: white; border-radius: 12px; padding: 16px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-top: 10px;
 }
-
 .riepilogo h3 { color: #1976d2; margin-bottom: 10px; }
-
-.riepilogo-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 0;
-  border-bottom: 1px solid #f0f0f0;
-  font-size: 0.9rem;
-}
-
-.totale {
-  margin-top: 12px;
-  font-size: 1.1rem;
-  font-weight: 700;
-  text-align: right;
-  color: #1976d2;
-}
+.riepilogo-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.9rem; }
+.totale { margin-top: 12px; font-size: 1.1rem; font-weight: 700; text-align: right; color: #1976d2; }
 
 /* Azioni Export */
-.azioni-export {
-  display: flex;
-  gap: 12px;
-  margin-top: 16px;
-}
-
+.azioni-export { display: flex; gap: 12px; margin-top: 16px; }
 .azioni-export button {
-  flex: 1;
-  padding: 12px;
-  border: none;
-  border-radius: 10px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
+  flex: 1; padding: 12px; border: none; border-radius: 10px;
+  font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s;
 }
-
-.azioni-export button:first-child {
-  background: #e53935;
-  color: white;
-}
+.azioni-export button:first-child { background: #e53935; color: white; }
 .azioni-export button:first-child:hover { background: #c62828; }
-
-.azioni-export button:last-child {
-  background: #43a047;
-  color: white;
-}
+.azioni-export button:last-child { background: #43a047; color: white; }
 .azioni-export button:last-child:hover { background: #2e7d32; }
+
+/* ─── Archivio ─── */
+#archivio-lista-date main,
+#archivio-dettaglio main {
+  max-width: 600px; margin: 20px auto; padding: 0 12px;
+}
+
+.archivio-dettaglio-header {
+  background: #1565c0; color: white;
+  padding: 12px 16px; display: flex; align-items: center; gap: 12px;
+}
+.archivio-dettaglio-header h2 { font-size: 1rem; }
+
+.archivio-item {
+  background: white; border-radius: 10px; padding: 14px 16px;
+  margin-bottom: 10px; box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+.archivio-item-info {
+  flex: 1; cursor: pointer; display: flex;
+  align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.archivio-item-info:hover { opacity: 0.8; }
+
+.archivio-data { font-weight: 700; color: #1976d2; font-size: 1rem; }
+.archivio-voci { font-size: 0.82rem; color: #888; }
+.archivio-totale { font-weight: 700; color: #43a047; font-size: 1rem; margin-left: auto; }
+
+.btn-elimina-giorno {
+  background: transparent; border: none; color: #e53935;
+  font-size: 1.2rem; cursor: pointer; padding: 4px 8px;
+}
+
+.archivio-totale-box {
+  background: white; border-radius: 10px; padding: 14px 16px;
+  margin-top: 10px; box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+}
 
 /* Version badge */
 .version-badge {
-  position: fixed;
-  bottom: 8px;
-  right: 12px;
-  font-size: 0.72rem;
-  color: #aaa;
-  pointer-events: none;
-  user-select: none;
+  position: fixed; bottom: 8px; right: 12px;
+  font-size: 0.72rem; color: #aaa; pointer-events: none; user-select: none;
 }
 
 /* Update banner */
 #update-banner {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  background: #ff8f00;
-  color: white;
-  padding: 10px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  z-index: 9999;
-  font-size: 0.9rem;
+  position: fixed; top: 0; left: 0; right: 0;
+  background: #ff8f00; color: white; padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  z-index: 9999; font-size: 0.9rem;
 }
-
 #update-banner button {
-  background: white;
-  color: #ff8f00;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-weight: 700;
-  cursor: pointer;
+  background: white; color: #ff8f00; border: none;
+  padding: 6px 14px; border-radius: 20px; font-weight: 700; cursor: pointer;
 }
 
 .hidden { display: none !important; }
 
-/* Modal foto fullscreen */
+/* Modal foto */
 #foto-modal {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.85);
-  z-index: 10000;
-  align-items: center;
-  justify-content: center;
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.85); z-index: 10000;
+  align-items: center; justify-content: center;
 }
 #foto-modal.show { display: flex; }
 #foto-modal img { max-width: 95vw; max-height: 90vh; border-radius: 8px; }
 #foto-modal button {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background: white;
-  border: none;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  font-size: 1.2rem;
-  cursor: pointer;
+  position: absolute; top: 16px; right: 16px;
+  background: white; border: none; border-radius: 50%;
+  width: 36px; height: 36px; font-size: 1.2rem; cursor: pointer;
 }
