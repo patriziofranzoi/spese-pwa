@@ -75,8 +75,25 @@ function onTipologiaChange() {
   if (val === 'rifornimento') calcolaLitri();
 }
 
+function onImportoInput(el) {
+  // Rimuove tutto tranne le cifre
+  let val = el.value.replace(/\D/g, '');
+  if (val === '') { el.value = ''; calcolaLitri(); return; }
+  // Inserisce virgola automatica: ultime 2 cifre = centesimi
+  val = val.padStart(3, '0'); // almeno 3 cifre
+  const euro = parseInt(val.slice(0, -2), 10);
+  const cent = val.slice(-2);
+  el.value = euro + ',' + cent;
+  calcolaLitri();
+}
+
+function importoAsFloat() {
+  const val = document.getElementById('importo').value.replace(',', '.');
+  return parseFloat(val) || 0;
+}
+
 function calcolaLitri() {
-  const totale = parseFloat(document.getElementById('importo').value);
+  const totale = importoAsFloat();
   const euroL = parseFloat(document.getElementById('euro-litro').value);
   if (!isNaN(totale) && !isNaN(euroL) && euroL > 0) {
     document.getElementById('num-litri').value = (totale / euroL).toFixed(2);
@@ -134,7 +151,7 @@ function renderFotoPreview() {
 // ─── Aggiungi / Modifica Spesa ───────────────────────────
 function aggiungiSpesa() {
   const data = document.getElementById('data-spesa').value;
-  const importo = parseFloat(document.getElementById('importo').value);
+  const importo = importoAsFloat();
   const tipoPag = document.getElementById('tipo-pagamento').value;
   const tipologia = document.getElementById('tipologia').value;
   const descrizione = document.getElementById('descrizione').value.trim();
