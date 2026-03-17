@@ -56,6 +56,12 @@ select {
 
 input:focus, select:focus { border-color: #1976d2; }
 
+input[readonly] {
+  background: #f5f5f5;
+  color: #888;
+  cursor: not-allowed;
+}
+
 .sub-group {
   background: #f5f9ff;
   border-left: 3px solid #1976d2;
@@ -148,9 +154,12 @@ input:focus, select:focus { border-color: #1976d2; }
   font-size: 0.82rem;
   color: #888;
   margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-.spesa-card .meta span { margin-right: 8px; }
+.spesa-card .meta span { margin-right: 4px; }
 
 .spesa-card .desc {
   font-size: 0.9rem;
@@ -211,6 +220,36 @@ input:focus, select:focus { border-color: #1976d2; }
   text-align: right;
   color: #1976d2;
 }
+
+/* Azioni Export */
+.azioni-export {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.azioni-export button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.azioni-export button:first-child {
+  background: #e53935;
+  color: white;
+}
+.azioni-export button:first-child:hover { background: #c62828; }
+
+.azioni-export button:last-child {
+  background: #43a047;
+  color: white;
+}
+.azioni-export button:last-child:hover { background: #2e7d32; }
 
 /* Version badge */
 .version-badge {
