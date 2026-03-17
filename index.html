@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gestione Spese</title>
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="theme-color" content="#1976d2"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <div id="update-banner" class="hidden">
+    <span>🔄 Nuova versione disponibile!</span>
+    <button onclick="applyUpdate()">Aggiorna ora</button>
+  </div>
+
+  <header>
+    <h1>💶 Gestione Spese</h1>
+  </header>
+
+  <main>
+    <section class="form-card" id="form-section">
+      <h2>Aggiungi Spesa</h2>
+
+      <!-- Data -->
+      <label>Data</label>
+      <input type="date" id="data-spesa" />
+
+      <!-- Importo -->
+      <label>Importo (€)</label>
+      <input type="number" id="importo" placeholder="0.00" step="0.01" min="0"/>
+
+      <!-- Tipo Pagamento -->
+      <label>Tipo Pagamento</label>
+      <select id="tipo-pagamento" onchange="onTipoPagamentoChange()">
+        <option value="contanti">Contanti</option>
+        <option value="bancomat">Bancomat</option>
+        <option value="bonifico">Bonifico</option>
+        <option value="hype">Hype</option>
+        <option value="satispay">Satispay</option>
+        <option value="altro">Altro</option>
+      </select>
+
+      <!-- Sottocategoria Bancomat -->
+      <div id="bancomat-sub" class="hidden sub-group">
+        <label>Bancomat</label>
+        <div class="radio-group">
+          <label><input type="radio" name="bancomat-tipo" value="mio" checked/> Mio</label>
+          <label><input type="radio" name="bancomat-tipo" value="condiviso"/> Condiviso</label>
+          <label><input type="radio" name="bancomat-tipo" value="papà"/> Papà</label>
+        </div>
+      </div>
+
+      <!-- Altro pagamento testo -->
+      <div id="altro-pagamento-div" class="hidden sub-group">
+        <label>Specifica tipo pagamento</label>
+        <input type="text" id="altro-pagamento-text" placeholder="es. PayPal, carta prepagata..."/>
+      </div>
+
+      <!-- Tipologia -->
+      <label>Tipologia</label>
+      <select id="tipologia">
+        <option value="spesa">Spesa</option>
+        <option value="rifornimento">Rifornimento</option>
+        <option value="altro">Altro</option>
+      </select>
+
+      <!-- Descrizione -->
+      <label>Descrizione (opzionale)</label>
+      <input type="text" id="descrizione" placeholder="Nota breve..."/>
+
+      <!-- Foto -->
+      <label>Foto (opzionale)</label>
+      <div class="foto-btn-group">
+        <button type="button" onclick="scattaFoto()">📷 Fotocamera</button>
+        <button type="button" onclick="selezionaGalleria()">🖼️ Galleria</button>
+      </div>
+      <input type="file" id="foto-input" accept="image/*" style="display:none" onchange="onFotoSelezionata(event)"/>
+      <div id="foto-preview-container"></div>
+
+      <button class="btn-aggiungi" onclick="aggiungiSpesa()">➕ Aggiungi Spesa</button>
+    </section>
+
+    <!-- Lista Spese -->
+    <section class="lista-section">
+      <h2>Spese del giorno <span id="data-display"></span></h2>
+      <div id="lista-spese"></div>
+
+      <!-- Riepilogo -->
+      <div class="riepilogo" id="riepilogo">
+        <h3>📊 Riepilogo</h3>
+        <div id="riepilogo-content"></div>
+        <div class="totale" id="totale-generale"></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="version-badge">v<span id="app-version"></span></div>
+
+  <script src="version.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
