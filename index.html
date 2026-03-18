@@ -10,7 +10,6 @@
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-
   <div id="update-banner" class="hidden">
     <span>🔄 Nuova versione disponibile!</span>
     <button onclick="applyUpdate()">Aggiorna ora</button>
@@ -30,17 +29,20 @@
         <h2>Aggiungi Spesa</h2>
 
         <label>Data</label>
-        <input type="date" id="data-spesa"/>
+        <input type="date" id="data-spesa" />
 
         <label>Importo (€)</label>
-        <input type="text" inputmode="numeric" id="importo" placeholder="0,00" oninput="onImportoInput(this)"/>
+        <input type="text" inputmode="numeric" id="importo" placeholder="0,00"
+               oninput="onImportoInput(this)"/>
 
         <label>Tipo Pagamento</label>
         <select id="tipo-pagamento" onchange="onTipoPagamentoChange()">
           <option value="bancomat" selected>💳 Bancomat</option>
-          <option value="contanti">🪙 Contanti</option>
           <option value="bonifico">🖥️ Bonifico</option>
-          <option value="hype">📱 Hype</option>
+          <option value="contanti">🪙 Contanti</option>
+          <option value="f24">📋 F24</option>
+          <option value="hype">🔷 Hype</option>
+          <option value="pagopa">🔵 PagoPa</option>
           <option value="satispay">🔴 Satispay</option>
           <option value="altro">✏️ Altro</option>
         </select>
@@ -48,9 +50,9 @@
         <div id="bancomat-sub" class="sub-group">
           <label>Bancomat</label>
           <div class="radio-group">
-            <label><input type="radio" name="bancomat-tipo" value="mio" checked/> 👤 Mio</label>
-            <label><input type="radio" name="bancomat-tipo" value="condiviso"/> 👥 Condiviso</label>
-            <label><input type="radio" name="bancomat-tipo" value="papà"/> 👨 Papà</label>
+            <label><input type="radio" name="bancomat-tipo" value="mio" checked/> Mio</label>
+            <label><input type="radio" name="bancomat-tipo" value="condiviso"/> Condiviso</label>
+            <label><input type="radio" name="bancomat-tipo" value="papà"/> Papà</label>
           </div>
         </div>
 
@@ -64,19 +66,21 @@
           <!-- Popolato da JS -->
         </select>
 
-        <!-- Sezione Spesa Supermercato -->
         <div id="sezione-spesa" class="hidden sub-group">
           <label>Supermercato</label>
           <select id="luogo-spesa" onchange="document.getElementById('luogo-altro-div').classList.toggle('hidden', this.value !== 'altro')">
-            <option value="Eurospin">Eurospin</option>
-            <option value="Prix">Prix</option>
-            <option value="Tosano">Tosano</option>
             <option value="Aldì">Aldì</option>
+            <option value="Alì">Alì</option>
+            <option value="Conad">Conad</option>
+            <option value="Dpiù">Dpiù</option>
+            <option value="Emisfero">Emisfero</option>
+            <option value="Esselunga">Esselunga</option>
+            <option value="Eurospin">Eurospin</option>
+            <option value="Famila">Famila</option>
             <option value="Lidl">Lidl</option>
             <option value="Pam">Pam</option>
-            <option value="Famila">Famila</option>
-            <option value="Emisfero">Emisfero</option>
-            <option value="Alì">Alì</option>
+            <option value="Prix">Prix</option>
+            <option value="Tosano">Tosano</option>
             <option value="altro">Altro…</option>
           </select>
           <div id="luogo-altro-div" class="hidden" style="margin-top:8px">
@@ -84,17 +88,13 @@
           </div>
         </div>
 
-        <!-- Sezione Benzinaio -->
         <div id="sezione-rifornimento" class="hidden sub-group">
           <label>€/Litro</label>
           <input type="text" inputmode="numeric" id="euro-litro" placeholder="0,000" oninput="onEuroLitroInput(this)"/>
-
-          <label>Litri (automatico)</label>
+          <label>Litri (calcolati automaticamente)</label>
           <input type="number" id="num-litri" placeholder="—" readonly/>
-
           <label>Km percorsi (opzionale)</label>
           <input type="number" id="km-percorsi" placeholder="es. 450" min="0" oninput="calcolaConsumi()"/>
-
           <div class="consumi-grid">
             <div>
               <label>€/km (automatico)</label>
@@ -115,8 +115,8 @@
           <button type="button" onclick="scattaFoto()">📷 Fotocamera</button>
           <button type="button" onclick="selezionaGalleria()">🖼️ Galleria</button>
         </div>
-        <input type="file" id="foto-input-camera"  accept="image/*" capture="environment" style="display:none" onchange="onFotoSelezionata(event)"/>
-        <input type="file" id="foto-input-galleria" accept="image/*"                      style="display:none" onchange="onFotoSelezionata(event)"/>
+        <input type="file" id="foto-input-camera"   accept="image/*" capture="environment" style="display:none" onchange="onFotoSelezionata(event)"/>
+        <input type="file" id="foto-input-galleria"  accept="image/*"                      style="display:none" onchange="onFotoSelezionata(event)"/>
         <div id="foto-preview-container"></div>
 
         <button class="btn-aggiungi" id="btn-aggiungi" onclick="aggiungiSpesa()">➕ Aggiungi Spesa</button>
@@ -183,7 +183,7 @@
   </div>
 
   <!-- Version badge -->
-  <div class="version-badge" onclick="apriChangelog()">v<span id="app-version"></span> 📋</div>
+  <div class="version-badge" onclick="apriChangelog ? apriChangelog() : null">v<span id="app-version"></span></div>
 
   <!-- MODAL CHANGELOG -->
   <div id="changelog-modal" class="cl-overlay hidden">
@@ -206,7 +206,7 @@
       <div class="cl-header"><span>🔄 Aggiornamento disponibile!</span></div>
       <div class="cl-body" id="update-modal-body"></div>
       <div class="cl-footer">
-        <button class="cl-btn-cerca" onclick="applyUpdate(); chiudiUpdateModal()">⚡ Aggiorna ora</button>
+        <button class="cl-btn-cerca" onclick="applyUpdate && applyUpdate(); chiudiUpdateModal()">⚡ Aggiorna ora</button>
         <button class="cl-btn-chiudi" onclick="chiudiUpdateModal()">Più tardi</button>
       </div>
     </div>
