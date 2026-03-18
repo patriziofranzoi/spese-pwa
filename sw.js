@@ -1,5 +1,5 @@
 // ─── Aggiornare CACHE_NAME ad ogni release ───────────────
-const CACHE_NAME = "spese-pwa-v1.0.0";
+const CACHE_NAME = "spese-pwa-v1.0.2";
 
 const ASSETS = [
   "./",
@@ -13,6 +13,7 @@ const ASSETS = [
 ];
 
 self.addEventListener("install", event => {
+  self.skipWaiting(); // ← attiva subito il nuovo SW senza aspettare
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
   );
@@ -22,14 +23,22 @@ self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+    ).then(() => self.clients.claim()) // ← prende controllo di tutti i tab aperti
   );
-  self.clients.claim();
 });
 
+// Network-first: prova sempre la rete, fallback cache
 self.addEventListener("fetch", event => {
+  if (event.request.method !== 'GET') return;
   event.respondWith(
-    caches.match(event.request).then(cached => cached || fetch(event.request))
+    fetch(event.request)
+      .then(response => {
+        // Salva in cache la risposta fresca
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
 

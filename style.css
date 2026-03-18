@@ -167,6 +167,10 @@ input[readonly] { background: #f5f5f5; color: #888; }
 .azioni-export button:nth-child(2):hover { background: #2e7d32; }
 .azioni-export button:nth-child(3) { background: #1976d2; color: white; }
 .azioni-export button:nth-child(3):hover { background: #1565c0; }
+.azioni-export button:nth-child(4) { background: #0288d1; color: white; }
+.azioni-export button:nth-child(4):hover { background: #0277bd; }
+.azioni-export button:nth-child(5) { background: #00838f; color: white; }
+.azioni-export button:nth-child(5):hover { background: #006064; }
 
 /* ─── Archivio ─── */
 #archivio-lista-date main,

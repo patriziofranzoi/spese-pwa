@@ -92,10 +92,27 @@ function importoAsFloat() {
   return parseFloat(val) || 0;
 }
 
+function onEuroLitroInput(el) {
+  // Rimuove tutto tranne le cifre
+  let val = el.value.replace(/\D/g, '');
+  if (val === '') { el.value = ''; calcolaLitri(); return; }
+  // Virgola automatica: ultime 3 cifre = millesimi (es. 1857 → 1,857)
+  val = val.padStart(4, '0');
+  const euro = parseInt(val.slice(0, -3), 10);
+  const milli = val.slice(-3);
+  el.value = euro + ',' + milli;
+  calcolaLitri();
+}
+
+function euroLitroAsFloat() {
+  const val = document.getElementById('euro-litro').value.replace(',', '.');
+  return parseFloat(val) || 0;
+}
+
 function calcolaLitri() {
   const totale = importoAsFloat();
-  const euroL = parseFloat(document.getElementById('euro-litro').value);
-  if (!isNaN(totale) && !isNaN(euroL) && euroL > 0) {
+  const euroL = euroLitroAsFloat();
+  if (totale > 0 && euroL > 0) {
     document.getElementById('num-litri').value = (totale / euroL).toFixed(2);
   } else {
     document.getElementById('num-litri').value = '';
@@ -180,7 +197,7 @@ function aggiungiSpesa() {
     const luogoAltro = document.getElementById('luogo-altro').value.trim();
     luogo = luogoSel === 'altro' ? (luogoAltro || 'Altro') : luogoSel;
   } else if (tipologia === 'rifornimento') {
-    euroLitro = parseFloat(document.getElementById('euro-litro').value) || null;
+    euroLitro = euroLitroAsFloat() || null;
     numLitri = parseFloat(document.getElementById('num-litri').value) || null;
     km = document.getElementById('km-percorsi').value.trim();
   }
@@ -244,7 +261,7 @@ function modificaSpesa(id) {
   }
 
   if (tipVal === 'rifornimento') {
-    if (s.euroLitro) document.getElementById('euro-litro').value = s.euroLitro;
+    if (s.euroLitro) document.getElementById('euro-litro').value = String(s.euroLitro).replace('.', ',');
     if (s.numLitri) document.getElementById('num-litri').value = s.numLitri;
     if (s.km) document.getElementById('km-percorsi').value = s.km;
   }
@@ -632,4 +649,103 @@ function scaricaFile(blob, nomeFile) {
   a.download = nomeFile;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// ─── Condivisione Telegram ───────────────────────────────
+async function condividiPDFTelegram() {
+  const dataOggi = formatData(oggi());
+  // Genera contenuto HTML del PDF come testo per Telegram
+  let testo = `📄 *Spese PDF — ${dataOggi}*\n\n`;
+  [...spese].sort((a, b) => new Date(a.data) - new Date(b.data)).forEach((s, i) => {
+    testo += `${i + 1}. ${s.tipologia} — *€ ${s.importo.toFixed(2)}*\n`;
+    testo += `   💳 ${s.tipoPagamento}`;
+    if (s.luogo) testo += `  🏪 ${s.luogo}`;
+    if (s.tipologia === 'Rifornimento') {
+      if (s.euroLitro) testo += `\n   ⛽ €${s.euroLitro}/L`;
+      if (s.numLitri) testo += `  🔢 ${s.numLitri}L`;
+      if (s.km) testo += `  🛣️ ${s.km} km`;
+    }
+    if (s.descrizione) testo += `\n   📝 ${s.descrizione}`;
+    testo += '\n\n';
+  });
+  testo += `─────────────────\n💰 *TOTALE: € ${spese.reduce((a, s) => a + s.importo, 0).toFixed(2)}*`;
+
+  // Prova condivisione nativa (Android/iOS apre Telegram se installato)
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: `Spese ${dataOggi}`, text: testo });
+      return;
+    } catch (e) {}
+  }
+  // Fallback: apri Telegram con il testo
+  const encoded = encodeURIComponent(testo);
+  window.open(`https://t.me/share/url?url=&text=${encoded}`, '_blank');
+}
+
+async function condividiCSVTelegram() {
+  const tutteSpese = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const chiave = d.toISOString().split('T')[0];
+    const arr = JSON.parse(localStorage.getItem(keyPerData(chiave)) || '[]');
+    arr.forEach(s => tutteSpese.push(s));
+  }
+
+  if (tutteSpese.length === 0) {
+    alert("Nessuna spesa nell'ultima settimana.");
+    return;
+  }
+
+  tutteSpese.sort((a, b) => new Date(b.data) - new Date(a.data));
+
+  const intestazioni = [
+    'Data', 'Contanti', 'Bancomat Mio', 'Bancomat Condiviso',
+    "Bancomat Papa", 'Hype', 'Satispay', 'Bonifico', 'Altro',
+    'Tipologia', 'Luogo / Supermercato', 'Euro/Litro', 'Litri', 'Km', 'Note'
+  ];
+  const righe = [intestazioni.join(';')];
+  tutteSpese.forEach(s => {
+    const imp = s.importo.toFixed(2).replace('.', ',');
+    const pag = s.tipoPagamento.toLowerCase();
+    const contanti  = pag === 'contanti'             ? imp : '';
+    const bancMio   = pag === 'bancomat - mio'       ? imp : '';
+    const bancCond  = pag === 'bancomat - condiviso' ? imp : '';
+    const bancPapa  = pag === 'bancomat - papà'      ? imp : '';
+    const hype      = pag === 'hype'                 ? imp : '';
+    const satispay  = pag === 'satispay'             ? imp : '';
+    const bonifico  = pag === 'bonifico'             ? imp : '';
+    const noti = ['contanti','bancomat - mio','bancomat - condiviso','bancomat - papà','hype','satispay','bonifico'];
+    const altro     = !noti.includes(pag)            ? imp : '';
+    righe.push([
+      formatData(s.data), contanti, bancMio, bancCond, bancPapa,
+      hype, satispay, bonifico, altro,
+      s.tipologia || '', s.luogo || '',
+      s.euroLitro ? String(s.euroLitro).replace('.', ',') : '',
+      s.numLitri  ? String(s.numLitri).replace('.', ',')  : '',
+      s.km || '', (s.descrizione || '').replace(/;/g, ',')
+    ].join(';'));
+  });
+  const totale = tutteSpese.reduce((acc, s) => acc + s.importo, 0);
+  righe.push('');
+  righe.push('TOTALE SETTIMANA;;;;;;;;;' + totale.toFixed(2).replace('.', ','));
+
+  const bom = '\uFEFF';
+  const csvContent = bom + righe.join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const dataInizio = formatData(new Date(new Date().setDate(new Date().getDate() - 6)).toISOString().split('T')[0]);
+  const dataFine   = formatData(oggi());
+  const nomeFile   = 'Spese_' + dataInizio.replace(/\//g,'-') + '_' + dataFine.replace(/\//g,'-') + '.csv';
+  const file = new File([blob], nomeFile, { type: 'text/csv' });
+
+  // Prova condivisione nativa con file (Android apre Telegram con allegato)
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: 'Spese settimana ' + dataInizio + ' - ' + dataFine });
+      return;
+    } catch (e) {}
+  }
+  // Fallback: scarica il file
+  scaricaFile(blob, nomeFile);
+  alert('📂 File CSV salvato! Aprilo e condividilo manualmente su Telegram.');
 }

@@ -84,7 +84,7 @@
 
         <div id="sezione-rifornimento" class="hidden sub-group">
           <label>€/Litro</label>
-          <input type="number" id="euro-litro" placeholder="es. 1.85" step="0.001" min="0" oninput="calcolaLitri()"/>
+          <input type="text" inputmode="numeric" id="euro-litro" placeholder="0,000" oninput="onEuroLitroInput(this)"/>
           <label>Litri (calcolati automaticamente)</label>
           <input type="number" id="num-litri" placeholder="Calcolato in automatico" readonly/>
           <label>Km percorsi (opzionale)</label>
@@ -118,6 +118,8 @@
           <button onclick="scaricaPDF()">📄 Salva PDF</button>
           <button onclick="condividi()">📤 Condividi</button>
           <button onclick="esportaCSVSettimana()">📊 CSV Settimana</button>
+          <button onclick="condividiPDFTelegram()">✈️ PDF → Telegram</button>
+          <button onclick="condividiCSVTelegram()">✈️ CSV → Telegram</button>
         </div>
       </section>
     </main>
