@@ -1,16 +1,3 @@
-// ─── Tipologie di sistema (non eliminabili) ───────────────
-const TIPOLOGIE_SISTEMA = [
-  { valore: 'spesa',        label: '🛒 Spesa' },
-  { valore: 'benzinaio',    label: '⛽ Benzinaio' },
-  { valore: 'farmacia',     label: '💊 Farmacia' },
-  { valore: 'personali',    label: '👤 Personali' },
-  { valore: 'casa',         label: '🏠 Casa' },
-  { valore: 'professionali',label: '💼 Professionali' },
-  { valore: 'ristorante',   label: '🍽️ Ristorante' },
-  { valore: 'generale',     label: '📦 Generale' },
-  { valore: 'ads',          label: '📣 ADS' },
-];
-
 // ─── State ───────────────────────────────────────────────
 let spese = [];
 let fotoTemporanee = [];
@@ -22,21 +9,15 @@ let spesaInModifica = null;
 document.addEventListener('DOMContentLoaded', () => {
   impostaDataOggi();
   caricaSpeseDiOggi();
-  popolaTipologie();
   onTipologiaChange();
   onTipoPagamentoChange();
   document.getElementById('app-version').textContent = APP_VERSION + ' - ' + APP_VERSION_DATE;
   registraServiceWorker();
   window.addEventListener('beforeunload', salvaSpeseDiOggi);
-  controllaVersioneNuova();
 });
 
 function oggi() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const g = String(now.getDate()).padStart(2, '0');
-  return `${y}-${m}-${g}`;
+  return new Date().toISOString().split('T')[0];
 }
 
 function impostaDataOggi() {
@@ -46,14 +27,15 @@ function impostaDataOggi() {
 }
 
 function formatData(d) {
-  if (!d || d === 'undefined') return '';
-  const parts = d.split('-');
-  if (parts.length !== 3) return d;
-  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  if (!d) return '';
+  const [y, m, g] = d.split('-');
+  return `${g}/${m}/${y}`;
 }
 
-// ─── Storage ─────────────────────────────────────────────
-function keyPerData(data) { return 'spese_' + data; }
+// ─── Storage per data ────────────────────────────────────
+function keyPerData(data) {
+  return 'spese_' + data;
+}
 
 function caricaSpeseDiOggi() {
   const raw = localStorage.getItem(keyPerData(oggi()));
@@ -71,8 +53,6 @@ function tutteLeDate() {
     const key = localStorage.key(i);
     if (key && key.startsWith('spese_')) {
       const data = key.replace('spese_', '');
-      // Valida che sia una data reale (YYYY-MM-DD)
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) continue;
       const arr = JSON.parse(localStorage.getItem(key) || '[]');
       if (arr.length > 0) date.push(data);
     }
@@ -87,127 +67,24 @@ function onTipoPagamentoChange() {
   document.getElementById('altro-pagamento-div').classList.toggle('hidden', val !== 'altro');
 }
 
-// ─── Tipologie dinamiche ─────────────────────────────────
-function getTipologieCustom() {
-  const raw = localStorage.getItem('tipologie_custom');
-  if (raw) return JSON.parse(raw);
-  // Default: "Misto" modificabile + "Altro" modificabile
-  return [
-    { valore: 'misto', label: '🔀 Misto' },
-    { valore: 'altro', label: '✏️ Altro' },
-  ];
-}
-
-function salvaTipologieCustom(arr) {
-  localStorage.setItem('tipologie_custom', JSON.stringify(arr));
-}
-
-function tutteLeTipologie() {
-  return [...TIPOLOGIE_SISTEMA, ...getTipologieCustom()];
-}
-
-function popolaTipologie(valoreSelezionato = null) {
-  const sel = document.getElementById('tipologia');
-  const currentVal = valoreSelezionato || sel.value || 'spesa';
-  sel.innerHTML = '';
-  tutteLeTipologie().forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t.valore;
-    opt.textContent = t.label;
-    if (t.valore === currentVal) opt.selected = true;
-    sel.appendChild(opt);
-  });
-  onTipologiaChange();
-}
-
 // ─── Tipologia ───────────────────────────────────────────
 function onTipologiaChange() {
   const val = document.getElementById('tipologia').value;
-  const isSpesa      = val === 'spesa';
-  const isBenzinaio  = val === 'benzinaio';
-  document.getElementById('sezione-spesa').classList.toggle('hidden', !isSpesa);
-  document.getElementById('sezione-rifornimento').classList.toggle('hidden', !isBenzinaio);
-  if (isBenzinaio) calcolaConsumi();
+  document.getElementById('sezione-spesa').classList.toggle('hidden', val !== 'spesa');
+  document.getElementById('sezione-rifornimento').classList.toggle('hidden', val !== 'rifornimento');
+  if (val === 'rifornimento') calcolaLitri();
 }
 
-// ─── Schermata Impostazioni ──────────────────────────────
-function apriImpostazioni() {
-  document.getElementById('schermata-principale').classList.add('hidden');
-  document.getElementById('schermata-impostazioni').classList.remove('hidden');
-  renderTipologieLista();
-}
-
-function chiudiImpostazioni() {
-  document.getElementById('schermata-impostazioni').classList.add('hidden');
-  document.getElementById('schermata-principale').classList.remove('hidden');
-  popolaTipologie();
-}
-
-function renderTipologieLista() {
-  const container = document.getElementById('tipologie-lista');
-  container.innerHTML = '';
-  const custom = getTipologieCustom();
-
-  TIPOLOGIE_SISTEMA.forEach(t => {
-    const row = document.createElement('div');
-    row.className = 'tip-row tip-sistema';
-    row.innerHTML = `<span class="tip-label">${t.label}</span><span class="tip-badge-sistema">Sistema</span>`;
-    container.appendChild(row);
-  });
-
-  const sep = document.createElement('div');
-  sep.className = 'tip-separatore';
-  sep.textContent = 'Tipologie personali';
-  container.appendChild(sep);
-
-  custom.forEach((t, idx) => {
-    const row = document.createElement('div');
-    row.className = 'tip-row';
-    row.innerHTML = `
-      <input type="text" class="tip-input" value="${t.label}"
-             onchange="rinominaTipologia(${idx}, this.value)" />
-      <button class="tip-btn-del" onclick="eliminaTipologia(${idx})">🗑️</button>
-    `;
-    container.appendChild(row);
-  });
-}
-
-function aggiuntaTipologia() {
-  const input = document.getElementById('nuova-tipologia-input');
-  const label = input.value.trim();
-  if (!label) { alert('Inserisci un nome per la tipologia.'); return; }
-  const valore = 'custom_' + Date.now();
-  const custom = getTipologieCustom();
-  custom.push({ valore, label });
-  salvaTipologieCustom(custom);
-  input.value = '';
-  renderTipologieLista();
-}
-
-function rinominaTipologia(idx, nuovoLabel) {
-  if (!nuovoLabel.trim()) return;
-  const custom = getTipologieCustom();
-  custom[idx].label = nuovoLabel.trim();
-  salvaTipologieCustom(custom);
-}
-
-function eliminaTipologia(idx) {
-  const custom = getTipologieCustom();
-  if (!confirm(`Eliminare la tipologia "${custom[idx].label}"?`)) return;
-  custom.splice(idx, 1);
-  salvaTipologieCustom(custom);
-  renderTipologieLista();
-}
-
-// ─── Input Importo ───────────────────────────────────────
 function onImportoInput(el) {
+  // Rimuove tutto tranne le cifre
   let val = el.value.replace(/\D/g, '');
-  if (val === '') { el.value = ''; calcolaConsumi(); return; }
-  val = val.padStart(3, '0');
+  if (val === '') { el.value = ''; calcolaLitri(); return; }
+  // Inserisce virgola automatica: ultime 2 cifre = centesimi
+  val = val.padStart(3, '0'); // almeno 3 cifre
   const euro = parseInt(val.slice(0, -2), 10);
   const cent = val.slice(-2);
   el.value = euro + ',' + cent;
-  calcolaConsumi();
+  calcolaLitri();
 }
 
 function importoAsFloat() {
@@ -215,56 +92,29 @@ function importoAsFloat() {
   return parseFloat(val) || 0;
 }
 
-// ─── Input Euro/Litro ────────────────────────────────────
-function onEuroLitroInput(el) {
-  let val = el.value.replace(/\D/g, '');
-  if (val === '') { el.value = ''; calcolaConsumi(); return; }
-  val = val.padStart(4, '0');
-  const euro = parseInt(val.slice(0, -3), 10);
-  const milli = val.slice(-3);
-  el.value = euro + ',' + milli;
-  calcolaConsumi();
-}
-
-function euroLitroAsFloat() {
-  const val = document.getElementById('euro-litro').value.replace(',', '.');
-  return parseFloat(val) || 0;
-}
-
-// ─── Calcola consumi benzinaio ───────────────────────────
-function calcolaConsumi() {
-  const totale  = importoAsFloat();
-  const euroL   = euroLitroAsFloat();
-  const kmStr   = document.getElementById('km-percorsi').value.trim();
-  const km      = parseFloat(kmStr) || 0;
-
-  // Litri
-  if (totale > 0 && euroL > 0) {
-    const litri = totale / euroL;
-    document.getElementById('num-litri').value = litri.toFixed(2);
-
-    // €/km
-    if (km > 0) {
-      document.getElementById('euro-km').value   = (totale / km).toFixed(3);
-      document.getElementById('km-litro').value  = (km / litri).toFixed(2);
-    } else {
-      document.getElementById('euro-km').value  = '';
-      document.getElementById('km-litro').value = '';
-    }
+function calcolaLitri() {
+  const totale = importoAsFloat();
+  const euroL = parseFloat(document.getElementById('euro-litro').value);
+  if (!isNaN(totale) && !isNaN(euroL) && euroL > 0) {
+    document.getElementById('num-litri').value = (totale / euroL).toFixed(2);
   } else {
     document.getElementById('num-litri').value = '';
-    document.getElementById('euro-km').value   = '';
-    document.getElementById('km-litro').value  = '';
   }
 }
 
 // ─── Foto ────────────────────────────────────────────────
 function scattaFoto() {
-  document.getElementById('foto-input-camera').click();
+  const input = document.getElementById('foto-input');
+  input.setAttribute('capture', 'environment');
+  input.setAttribute('accept', 'image/*');
+  input.click();
 }
 
 function selezionaGalleria() {
-  document.getElementById('foto-input-galleria').click();
+  const input = document.getElementById('foto-input');
+  input.removeAttribute('capture');
+  input.setAttribute('accept', 'image/*');
+  input.click();
 }
 
 function onFotoSelezionata(event) {
@@ -286,69 +136,71 @@ function renderFotoPreview() {
   fotoTemporanee.forEach((src, i) => {
     const wrap = document.createElement('div');
     wrap.className = 'foto-thumb-wrap';
-    const img = document.createElement('img'); img.src = src;
+    const img = document.createElement('img');
+    img.src = src;
     const btn = document.createElement('button');
-    btn.className = 'del-foto'; btn.textContent = '✕';
+    btn.className = 'del-foto';
+    btn.textContent = '✕';
     btn.onclick = () => { fotoTemporanee.splice(i, 1); renderFotoPreview(); };
-    wrap.appendChild(img); wrap.appendChild(btn);
+    wrap.appendChild(img);
+    wrap.appendChild(btn);
     container.appendChild(wrap);
   });
 }
 
 // ─── Aggiungi / Modifica Spesa ───────────────────────────
 function aggiungiSpesa() {
-  const data       = document.getElementById('data-spesa').value;
-  const importo    = importoAsFloat();
-  const tipoPag    = document.getElementById('tipo-pagamento').value;
-  const tipologia  = document.getElementById('tipologia').value;
+  const data = document.getElementById('data-spesa').value;
+  const importo = importoAsFloat();
+  const tipoPag = document.getElementById('tipo-pagamento').value;
+  const tipologia = document.getElementById('tipologia').value;
   const descrizione = document.getElementById('descrizione').value.trim();
 
-  if (!data)                          { alert('Inserisci una data.'); return; }
+  if (!data) { alert('Inserisci una data.'); return; }
   if (isNaN(importo) || importo <= 0) { alert('Inserisci un importo valido.'); return; }
 
-  // Label tipo pagamento
-  let tipoPagLabel;
+  let tipoPagLabel = tipoPag;
   if (tipoPag === 'bancomat') {
     const sub = document.querySelector('input[name="bancomat-tipo"]:checked');
-    tipoPagLabel = 'Bancomat - ' + (sub ? sub.value.charAt(0).toUpperCase() + sub.value.slice(1) : 'Mio');
+    const subVal = sub ? sub.value : 'mio';
+    const subIcon = subVal === 'mio' ? '👤' : subVal === 'condiviso' ? '👥' : '👨';
+    tipoPagLabel = `💳 Bancomat - ${subIcon} ${subVal.charAt(0).toUpperCase() + subVal.slice(1)}`;
   } else if (tipoPag === 'altro') {
-    tipoPagLabel = document.getElementById('altro-pagamento-text').value.trim() || 'Altro';
+    const altroText = document.getElementById('altro-pagamento-text').value.trim();
+    tipoPagLabel = '✏️ ' + (altroText || 'Altro');
   } else {
-    tipoPagLabel = tipoPag.charAt(0).toUpperCase() + tipoPag.slice(1);
+    const icone = { contanti: '💵', bonifico: '🏦', hype: '📱', satispay: '🔵' };
+    const nomi  = { contanti: 'Contanti', bonifico: 'Bonifico', hype: 'Hype', satispay: 'Satispay' };
+    tipoPagLabel = (icone[tipoPag] ? icone[tipoPag] + ' ' : '') + (nomi[tipoPag] || tipoPag.charAt(0).toUpperCase() + tipoPag.slice(1));
   }
 
-  // Dati extra
-  let luogo = '', euroLitro = null, numLitri = null, km = null, euroKm = null, kmLitro = null;
+  let luogo = '';
+  let euroLitro = null;
+  let numLitri = null;
+  let km = null;
 
   if (tipologia === 'spesa') {
-    const luogoSel  = document.getElementById('luogo-spesa').value;
+    const luogoSel = document.getElementById('luogo-spesa').value;
     const luogoAltro = document.getElementById('luogo-altro').value.trim();
     luogo = luogoSel === 'altro' ? (luogoAltro || 'Altro') : luogoSel;
-  } else if (tipologia === 'benzinaio') {
-    euroLitro = euroLitroAsFloat() || null;
-    numLitri  = parseFloat(document.getElementById('num-litri').value)  || null;
-    km        = document.getElementById('km-percorsi').value.trim() || null;
-    euroKm    = parseFloat(document.getElementById('euro-km').value)    || null;
-    kmLitro   = parseFloat(document.getElementById('km-litro').value)   || null;
+  } else if (tipologia === 'rifornimento') {
+    euroLitro = parseFloat(document.getElementById('euro-litro').value) || null;
+    numLitri = parseFloat(document.getElementById('num-litri').value) || null;
+    km = document.getElementById('km-percorsi').value.trim();
   }
 
-  // Label tipologia
-  const tutteT = tutteLeTipologie();
-  const trovata = tutteT.find(t => t.valore === tipologia);
-  const tipologiaLabel = trovata ? trovata.label : tipologia;
-
-  const spesaObj = { id: Date.now(), data, importo, tipoPagamento: tipoPagLabel,
-    tipologia: tipologiaLabel, luogo, euroLitro, numLitri, km, euroKm, kmLitro,
-    descrizione, foto: [...fotoTemporanee] };
+  const tipologiaLabel = tipologia === 'spesa' ? 'Spesa' : tipologia === 'rifornimento' ? 'Rifornimento' : 'Spesa Generale';
 
   if (spesaInModifica !== null) {
     const idx = spese.findIndex(s => s.id === spesaInModifica);
-    if (idx !== -1) spese[idx] = { ...spese[idx], ...spesaObj, id: spese[idx].id };
+    if (idx !== -1) {
+      spese[idx] = { ...spese[idx], data, importo, tipoPagamento: tipoPagLabel, tipologia: tipologiaLabel, luogo, euroLitro, numLitri, km, descrizione, foto: [...fotoTemporanee] };
+    }
     spesaInModifica = null;
     document.getElementById('btn-aggiungi').textContent = '➕ Aggiungi Spesa';
     document.getElementById('btn-annulla-modifica').classList.add('hidden');
   } else {
-    spese.push(spesaObj);
+    spese.push({ id: Date.now(), data, importo, tipoPagamento: tipoPagLabel, tipologia: tipologiaLabel, luogo, euroLitro, numLitri, km, descrizione, foto: [...fotoTemporanee] });
   }
 
   if (modalitaArchivio && dataSelezionataArchivio) {
@@ -358,6 +210,7 @@ function aggiungiSpesa() {
     salvaSpeseDiOggi();
     renderLista();
   }
+
   resetForm();
 }
 
@@ -366,49 +219,43 @@ function modificaSpesa(id) {
   if (!s) return;
   spesaInModifica = id;
 
-  document.getElementById('data-spesa').value    = s.data;
-  document.getElementById('importo').value        = s.importo.toFixed(2).replace('.', ',');
-  document.getElementById('descrizione').value    = s.descrizione || '';
+  document.getElementById('data-spesa').value = s.data;
+  document.getElementById('importo').value = s.importo;
+  document.getElementById('descrizione').value = s.descrizione || '';
 
-  // Tipo pagamento
   const tipoPagBase = s.tipoPagamento.toLowerCase().startsWith('bancomat') ? 'bancomat' : s.tipoPagamento.toLowerCase();
-  const selectPag   = document.getElementById('tipo-pagamento');
-  const opzioniPag  = Array.from(selectPag.options).map(o => o.value);
-  selectPag.value   = opzioniPag.includes(tipoPagBase) ? tipoPagBase : 'altro';
-  if (tipoPagBase === 'bancomat') {
-    const subVal = s.tipoPagamento.split(' - ')[1]?.toLowerCase() || 'mio';
-    const radio  = document.querySelector(`input[name="bancomat-tipo"][value="${subVal}"]`);
-    if (radio) radio.checked = true;
-  }
+  const selectPag = document.getElementById('tipo-pagamento');
+  const opzioniPag = Array.from(selectPag.options).map(o => o.value);
+  selectPag.value = opzioniPag.includes(tipoPagBase) ? tipoPagBase : 'altro';
   onTipoPagamentoChange();
 
-  // Tipologia — trova da label
-  const tutteT  = tutteLeTipologie();
-  const trovata = tutteT.find(t => t.label === s.tipologia);
-  const tipVal  = trovata ? trovata.valore : 'generale';
-  popolaTipologie(tipVal);
+  let tipVal = 'generale';
+  if (s.tipologia === 'Spesa') tipVal = 'spesa';
+  else if (s.tipologia === 'Rifornimento') tipVal = 'rifornimento';
+  document.getElementById('tipologia').value = tipVal;
+  onTipologiaChange();
 
   if (tipVal === 'spesa' && s.luogo) {
-    const sel     = document.getElementById('luogo-spesa');
+    const sel = document.getElementById('luogo-spesa');
     const opzioni = Array.from(sel.options).map(o => o.value);
-    if (opzioni.includes(s.luogo)) { sel.value = s.luogo; }
-    else {
+    if (opzioni.includes(s.luogo)) {
+      sel.value = s.luogo;
+    } else {
       sel.value = 'altro';
       document.getElementById('luogo-altro').value = s.luogo;
       document.getElementById('luogo-altro-div').classList.remove('hidden');
     }
   }
 
-  if (tipVal === 'benzinaio') {
-    if (s.euroLitro) document.getElementById('euro-litro').value  = String(s.euroLitro).replace('.', ',');
-    if (s.numLitri)  document.getElementById('num-litri').value   = s.numLitri;
-    if (s.km)        document.getElementById('km-percorsi').value = s.km;
-    if (s.euroKm)    document.getElementById('euro-km').value     = s.euroKm;
-    if (s.kmLitro)   document.getElementById('km-litro').value    = s.kmLitro;
+  if (tipVal === 'rifornimento') {
+    if (s.euroLitro) document.getElementById('euro-litro').value = s.euroLitro;
+    if (s.numLitri) document.getElementById('num-litri').value = s.numLitri;
+    if (s.km) document.getElementById('km-percorsi').value = s.km;
   }
 
   fotoTemporanee = [...(s.foto || [])];
   renderFotoPreview();
+
   document.getElementById('btn-aggiungi').textContent = '💾 Salva Modifiche';
   document.getElementById('btn-annulla-modifica').classList.remove('hidden');
   document.getElementById('form-section').scrollIntoView({ behavior: 'smooth' });
@@ -422,19 +269,18 @@ function annullaModifica() {
 }
 
 function resetForm() {
-  document.getElementById('importo').value       = '';
-  document.getElementById('descrizione').value   = '';
+  document.getElementById('importo').value = '';
+  document.getElementById('descrizione').value = '';
   document.getElementById('tipo-pagamento').value = 'bancomat';
-  document.getElementById('luogo-spesa').value   = 'Eurospin';
-  document.getElementById('luogo-altro').value   = '';
+  document.getElementById('tipologia').value = 'generale';
+  document.getElementById('luogo-spesa').value = 'Eurospin';
+  document.getElementById('luogo-altro').value = '';
   document.getElementById('luogo-altro-div').classList.add('hidden');
-  document.getElementById('euro-litro').value    = '';
-  document.getElementById('num-litri').value     = '';
-  document.getElementById('km-percorsi').value   = '';
-  document.getElementById('euro-km').value       = '';
-  document.getElementById('km-litro').value      = '';
+  document.getElementById('euro-litro').value = '';
+  document.getElementById('num-litri').value = '';
+  document.getElementById('km-percorsi').value = '';
   onTipoPagamentoChange();
-  popolaTipologie('spesa');
+  onTipologiaChange();
   fotoTemporanee = [];
   renderFotoPreview();
   impostaDataOggi();
@@ -453,17 +299,19 @@ function eliminaSpesa(id) {
   }
 }
 
-// ─── Render Lista ────────────────────────────────────────
+// ─── Render Lista (oggi) ─────────────────────────────────
 function renderLista() {
   const container = document.getElementById('lista-spese');
   container.innerHTML = '';
+
   if (spese.length === 0) {
     container.innerHTML = '<p style="color:#aaa;text-align:center;padding:20px">Nessuna spesa aggiunta oggi.</p>';
-    document.getElementById('riepilogo').style.display    = 'none';
+    document.getElementById('riepilogo').style.display = 'none';
     document.getElementById('azioni-export').style.display = 'none';
     return;
   }
-  document.getElementById('riepilogo').style.display    = '';
+
+  document.getElementById('riepilogo').style.display = '';
   document.getElementById('azioni-export').style.display = '';
   [...spese].sort((a, b) => b.id - a.id).forEach(s => container.appendChild(creaCardSpesa(s)));
   renderRiepilogo();
@@ -474,20 +322,17 @@ function creaCardSpesa(s) {
   card.className = 'spesa-card';
 
   let extraInfo = '';
-  const tipLow = (s.tipologia || '').toLowerCase();
-  if (tipLow.includes('spesa') && s.luogo) extraInfo += `<span>🏪 ${s.luogo}</span>`;
-  if (tipLow.includes('benzinaio') || s.euroLitro) {
+  if (s.tipologia === 'Spesa' && s.luogo) extraInfo += `<span>🏪 ${s.luogo}</span>`;
+  if (s.tipologia === 'Rifornimento') {
     if (s.euroLitro) extraInfo += `<span>⛽ €${s.euroLitro}/L</span>`;
-    if (s.numLitri)  extraInfo += `<span>🔢 ${s.numLitri}L</span>`;
-    if (s.km)        extraInfo += `<span>🛣️ ${s.km} km</span>`;
-    if (s.euroKm)    extraInfo += `<span>💶 €${s.euroKm}/km</span>`;
-    if (s.kmLitro)   extraInfo += `<span>📊 ${s.kmLitro} km/L</span>`;
+    if (s.numLitri) extraInfo += `<span>🔢 ${s.numLitri}L</span>`;
+    if (s.km) extraInfo += `<span>🛣️ ${s.km} km</span>`;
   }
 
   card.innerHTML = `
     <div class="card-azioni">
       <button class="btn-modifica" onclick="modificaSpesa(${s.id})">✏️</button>
-      <button class="btn-elimina"  onclick="eliminaSpesa(${s.id})">🗑️</button>
+      <button class="btn-elimina" onclick="eliminaSpesa(${s.id})">🗑️</button>
     </div>
     <div class="importo-badge">€ ${s.importo.toFixed(2)}</div>
     <div class="meta">
@@ -498,7 +343,8 @@ function creaCardSpesa(s) {
     </div>
     ${s.descrizione ? `<div class="desc">📝 ${s.descrizione}</div>` : ''}
     ${s.foto && s.foto.length > 0 ? `<div class="foto-row">${s.foto.map(f =>
-      `<img src="${f}" onclick="apriModal('${encodeURIComponent(f)}')" />`).join('')}</div>` : ''}
+      `<img src="${f}" onclick="apriModal('${encodeURIComponent(f)}')" />`
+    ).join('')}</div>` : ''}
   `;
   return card;
 }
@@ -551,9 +397,9 @@ function renderArchivioLista() {
     return;
   }
   date.forEach(d => {
-    const arr    = JSON.parse(localStorage.getItem(keyPerData(d)) || '[]');
+    const arr = JSON.parse(localStorage.getItem(keyPerData(d)) || '[]');
     const totale = arr.reduce((acc, s) => acc + s.importo, 0);
-    const item   = document.createElement('div');
+    const item = document.createElement('div');
     item.className = 'archivio-item';
     item.innerHTML = `
       <div class="archivio-item-info" onclick="apriDettaglioArchivio('${d}')">
@@ -605,12 +451,10 @@ function eliminaGiornata(data) {
 
 // ─── Export PDF ──────────────────────────────────────────
 function scaricaPDF() {
-  const dataLabel = modalitaArchivio && dataSelezionataArchivio
-    ? formatData(dataSelezionataArchivio)
-    : formatData(oggi());
+  const dataOggi = formatData(oggi());
   const win = window.open('', '_blank');
   win.document.write(`
-    <html><head><title>Spese ${dataLabel}</title>
+    <html><head><title>Spese ${dataOggi}</title>
     <style>
       body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
       h1 { color: #1976d2; margin-bottom: 20px; }
@@ -619,33 +463,20 @@ function scaricaPDF() {
       td { padding: 8px 12px; border-bottom: 1px solid #eee; }
       tr:nth-child(even) { background: #f5f9ff; }
       .totale { font-size: 1.2rem; font-weight: bold; color: #1976d2; text-align: right; margin-top: 10px; }
-      .extra { font-size: 0.82rem; color: #888; }
+      .extra { font-size: 0.85rem; color: #888; }
       @media print { button { display: none; } }
     </style></head><body>
-    <h1>💶 Riepilogo Spese — ${dataLabel}</h1>
-    <table><thead><tr>
-      <th>Data</th><th>Tipologia</th><th>Luogo/Info</th><th>Pagamento</th><th>Importo</th>
-    </tr></thead><tbody>
-      ${[...spese].sort((a,b) => new Date(a.data) - new Date(b.data)).map(s => {
-        const tipLow = (s.tipologia || '').toLowerCase();
-        const isBenz = tipLow.includes('benzinaio') || s.euroLitro;
-        const isSpesa = tipLow.includes('spesa');
-        let info = s.luogo && isSpesa ? s.luogo : '';
-        if (isBenz) {
-          const parts = [];
-          if (s.euroLitro) parts.push(`⛽ €${s.euroLitro}/L`);
-          if (s.numLitri)  parts.push(`${s.numLitri}L`);
-          if (s.km)        parts.push(`🛣️ ${s.km}km`);
-          if (s.euroKm)    parts.push(`💶 €${s.euroKm}/km`);
-          if (s.kmLitro)   parts.push(`📊 ${s.kmLitro}km/L`);
-          info = `<span class="extra">${parts.join(' · ')}</span>`;
-        }
-        if (s.descrizione) info += `${info ? '<br>' : ''}<span class="extra">📝 ${s.descrizione}</span>`;
-        return `<tr><td>${formatData(s.data)}</td><td>${s.tipologia}</td><td>${info}</td>
-          <td>${s.tipoPagamento}</td><td><strong>€ ${s.importo.toFixed(2)}</strong></td></tr>`;
-      }).join('')}
+    <h1>💶 Riepilogo Spese — ${dataOggi}</h1>
+    <table><thead><tr><th>Data</th><th>Tipologia</th><th>Luogo/Info</th><th>Pagamento</th><th>Importo</th></tr></thead>
+    <tbody>
+      ${[...spese].sort((a, b) => new Date(a.data) - new Date(b.data)).map(s => `
+        <tr>
+          <td>${formatData(s.data)}</td><td>${s.tipologia}</td>
+          <td>${s.luogo || ''}${s.tipologia === 'Rifornimento' ? `<br><span class="extra">${s.euroLitro ? '⛽ €' + s.euroLitro + '/L ' : ''}${s.numLitri ? s.numLitri + 'L ' : ''}${s.km ? '🛣️ ' + s.km + ' km' : ''}</span>` : ''}${s.descrizione ? `<br><span class="extra">📝 ${s.descrizione}</span>` : ''}</td>
+          <td>${s.tipoPagamento}</td><td><strong>€ ${s.importo.toFixed(2)}</strong></td>
+        </tr>`).join('')}
     </tbody></table>
-    <div class="totale">TOTALE: € ${spese.reduce((a,s) => a+s.importo, 0).toFixed(2)}</div>
+    <div class="totale">TOTALE: € ${spese.reduce((a, s) => a + s.importo, 0).toFixed(2)}</div>
     <br><button onclick="window.print()">🖨️ Stampa / Salva PDF</button>
     </body></html>`);
   win.document.close();
@@ -653,35 +484,30 @@ function scaricaPDF() {
 
 // ─── Condividi ───────────────────────────────────────────
 async function condividi() {
-  const dataLabel = modalitaArchivio && dataSelezionataArchivio
-    ? formatData(dataSelezionataArchivio) : formatData(oggi());
+  const dataOggi = formatData(oggi());
   const totaleGen = spese.reduce((acc, s) => acc + s.importo, 0);
-  let testo = `💶 *Spese del ${dataLabel}*\n\n`;
-  [...spese].sort((a,b) => new Date(a.data) - new Date(b.data)).forEach((s, i) => {
-    testo += `${i+1}. ${s.tipologia} — *€ ${s.importo.toFixed(2)}*\n   💳 ${s.tipoPagamento}`;
+  let testo = `💶 *Spese del ${dataOggi}*\n\n`;
+  [...spese].sort((a, b) => new Date(a.data) - new Date(b.data)).forEach((s, i) => {
+    testo += `${i + 1}. ${s.tipologia} — *€ ${s.importo.toFixed(2)}*\n   💳 ${s.tipoPagamento}`;
     if (s.luogo) testo += `  |  🏪 ${s.luogo}`;
-    const tipLow = (s.tipologia||'').toLowerCase();
-    if (tipLow.includes('benzinaio') || s.euroLitro) {
+    if (s.tipologia === 'Rifornimento') {
       if (s.euroLitro) testo += `\n   ⛽ €${s.euroLitro}/L`;
-      if (s.numLitri)  testo += `  🔢 ${s.numLitri}L`;
-      if (s.km)        testo += `  🛣️ ${s.km} km`;
-      if (s.euroKm)    testo += `  💶 €${s.euroKm}/km`;
-      if (s.kmLitro)   testo += `  📊 ${s.kmLitro} km/L`;
+      if (s.numLitri) testo += `  🔢 ${s.numLitri}L`;
+      if (s.km) testo += `  🛣️ ${s.km} km`;
     }
     if (s.descrizione) testo += `\n   📝 ${s.descrizione}`;
     testo += '\n\n';
   });
   testo += `─────────────────\n💰 *TOTALE: € ${totaleGen.toFixed(2)}*`;
   if (navigator.share) {
-    try { await navigator.share({ title: `Spese ${dataLabel}`, text: testo }); return; }
-    catch (e) {}
-  }
-  copiaNeglAppunti(testo);
+    try { await navigator.share({ title: `Spese ${dataOggi}`, text: testo }); }
+    catch (e) { copiaNeglAppunti(testo); }
+  } else { copiaNeglAppunti(testo); }
 }
 
 function copiaNeglAppunti(testo) {
   navigator.clipboard.writeText(testo)
-    .then(() => alert('📋 Testo copiato! Incollalo dove vuoi.'))
+    .then(() => alert('📋 Testo copiato! Incollalo dove vuoi (Telegram, WhatsApp...)'))
     .catch(() => prompt('Copia questo testo:', testo));
 }
 
@@ -698,7 +524,10 @@ function apriModal(encodedSrc) {
   document.getElementById('modal-img').src = src;
   modal.classList.add('show');
 }
-function chiudiModal() { document.getElementById('foto-modal')?.classList.remove('show'); }
+
+function chiudiModal() {
+  document.getElementById('foto-modal')?.classList.remove('show');
+}
 
 // ─── Service Worker ──────────────────────────────────────
 let pendingRegistration = null;
@@ -707,92 +536,25 @@ function registraServiceWorker() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').then(reg => {
       reg.addEventListener('updatefound', () => {
-        const nw = reg.installing;
-        nw.addEventListener('statechange', () => {
-          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+        const newWorker = reg.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
             pendingRegistration = reg;
             document.getElementById('update-banner').classList.remove('hidden');
           }
         });
       });
-      setInterval(() => reg.update(), 5 * 60 * 1000);
+      setInterval(() => reg.update(), 60000);
     });
     navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
   }
 }
 
 function applyUpdate() {
-  if (pendingRegistration && pendingRegistration.waiting)
+  if (pendingRegistration && pendingRegistration.waiting) {
     pendingRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
-}
-
-// ─── Changelog & Aggiornamenti ───────────────────────────
-function controllaVersioneNuova() {
-  const ultimaVista = localStorage.getItem('ultima_versione_vista');
-  if (ultimaVista !== APP_VERSION) {
-    setTimeout(() => apriChangelog(true), 1000);
-    localStorage.setItem('ultima_versione_vista', APP_VERSION);
   }
 }
-
-function apriChangelog(soloUltima = false) {
-  const body = document.getElementById('changelog-body');
-  body.innerHTML = '';
-  const changelog = typeof APP_CHANGELOG !== 'undefined' ? APP_CHANGELOG : [];
-  if (!changelog.length) {
-    body.innerHTML = '<p style="color:#aaa;text-align:center;padding:20px">Nessuna nota disponibile.</p>';
-  } else {
-    (soloUltima ? [changelog[0]] : changelog).forEach(entry => {
-      const isCurrent = entry.version === APP_VERSION;
-      const block = document.createElement('div');
-      block.className = 'cl-version-block';
-      block.innerHTML = `
-        <div class="cl-version-title">
-          <span class="cl-version-badge ${isCurrent ? 'current' : ''}">v${entry.version}${isCurrent ? ' ✓' : ''}</span>
-          <span class="cl-version-date">📅 ${formatData(entry.date)}</span>
-        </div>
-        <ul class="cl-notes">${entry.notes.map(n => `<li>${n}</li>`).join('')}</ul>`;
-      body.appendChild(block);
-    });
-  }
-  document.getElementById('changelog-modal').classList.remove('hidden');
-}
-
-function chiudiChangelog() { document.getElementById('changelog-modal').classList.add('hidden'); }
-
-async function cercaAggiornamenti() {
-  const btn = document.querySelector('#changelog-modal .cl-btn-cerca');
-  btn.disabled = true; btn.textContent = '⏳ Controllo...';
-  try {
-    const res = await fetch(`./version.js?t=${Date.now()}`, { cache: 'no-store' });
-    const testo = await res.text();
-    const match = testo.match(/APP_VERSION\s*=\s*"([^"]+)"/);
-    const vOnline = match ? match[1] : null;
-    if (!vOnline) { alert('⚠️ Impossibile leggere la versione online.'); }
-    else if (vOnline === APP_VERSION) {
-      btn.textContent = '✅ Sei aggiornato!'; btn.style.background = '#43a047';
-      setTimeout(() => { btn.textContent = '🔍 Cerca aggiornamenti'; btn.style.background = ''; btn.disabled = false; }, 3000);
-      return;
-    } else {
-      chiudiChangelog(); mostraModalAggiornamento(vOnline);
-    }
-  } catch { alert('⚠️ Errore di rete.'); }
-  btn.textContent = '🔍 Cerca aggiornamenti'; btn.disabled = false;
-}
-
-function mostraModalAggiornamento(vOnline) {
-  document.getElementById('update-modal-body').innerHTML = `
-    <div style="text-align:center;padding:8px 0 16px">
-      <div style="font-size:2.5rem;margin-bottom:8px">🆕</div>
-      <div style="font-size:1rem;font-weight:700;color:#1976d2">Versione ${vOnline} disponibile</div>
-      <div style="font-size:0.85rem;color:#888;margin-top:4px">Stai usando la v${APP_VERSION}</div>
-    </div>
-    <p style="font-size:0.88rem;color:#555;text-align:center;line-height:1.5">
-      Tocca <strong>Aggiorna ora</strong> per installare la versione più recente.
-    </p>`;
-  document.getElementById('update-modal').classList.remove('hidden');
-}
-function chiudiUpdateModal() { document.getElementById('update-modal').classList.add('hidden'); }
 
 // ─── Export CSV Settimana ────────────────────────────────
 function esportaCSVSettimana() {
@@ -800,62 +562,67 @@ function esportaCSVSettimana() {
   for (let i = 0; i < 7; i++) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), g = String(d.getDate()).padStart(2,'0');
-    const chiave = `${y}-${m}-${g}`;
-    JSON.parse(localStorage.getItem(keyPerData(chiave)) || '[]').forEach(s => tutteSpese.push(s));
+    const chiave = d.toISOString().split('T')[0];
+    const arr = JSON.parse(localStorage.getItem(keyPerData(chiave)) || '[]');
+    arr.forEach(s => tutteSpese.push(s));
   }
-  if (!tutteSpese.length) { alert("Nessuna spesa nell'ultima settimana."); return; }
-  tutteSpese.sort((a,b) => new Date(b.data) - new Date(a.data));
-  _scaricaCSV(tutteSpese);
-}
 
-function _scaricaCSV(tutteSpese) {
+  if (tutteSpese.length === 0) {
+    alert("Nessuna spesa nell'ultima settimana.");
+    return;
+  }
+
+  tutteSpese.sort((a, b) => new Date(b.data) - new Date(a.data));
+
   const intestazioni = [
-    'Data','Contanti','Bancomat Mio','Bancomat Condiviso','Bancomat Papa',
-    'Hype','Satispay','Bonifico','Altro',
-    'Tipologia','Luogo/Supermercato','Euro/Litro','Litri','Km','Euro/Km','Km/Litro','Note'
+    'Data', 'Contanti', 'Bancomat Mio', 'Bancomat Condiviso',
+    "Bancomat Papa", 'Hype', 'Satispay', 'Bonifico', 'Altro',
+    'Tipologia', 'Luogo / Supermercato', 'Euro/Litro', 'Litri', 'Km', 'Note'
   ];
+
   const righe = [intestazioni.join(';')];
 
   tutteSpese.forEach(s => {
     const imp = s.importo.toFixed(2).replace('.', ',');
     const pag = s.tipoPagamento.toLowerCase();
-    const contanti  = pag === 'contanti'             ? imp : '';
-    const bancMio   = pag === 'bancomat - mio'       ? imp : '';
-    const bancCond  = pag === 'bancomat - condiviso' ? imp : '';
-    const bancPapa  = pag === 'bancomat - papà'      ? imp : '';
-    const hype      = pag === 'hype'                 ? imp : '';
-    const satispay  = pag === 'satispay'             ? imp : '';
-    const bonifico  = pag === 'bonifico'             ? imp : '';
-    const noti      = ['contanti','bancomat - mio','bancomat - condiviso','bancomat - papà','hype','satispay','bonifico'];
-    const altro     = !noti.includes(pag)            ? imp : '';
+    const contanti     = pag.includes('contanti')             ? imp : '';
+    const bancMio      = pag.includes('bancomat') && pag.includes('mio')       ? imp : '';
+    const bancCond     = pag.includes('bancomat') && pag.includes('condiviso') ? imp : '';
+    const bancPapa     = pag.includes('bancomat') && pag.includes('pap')       ? imp : '';
+    const hype         = pag.includes('hype')                 ? imp : '';
+    const satispay     = pag.includes('satispay')             ? imp : '';
+    const bonifico     = pag.includes('bonifico')             ? imp : '';
+    const noti = ['contanti','bancomat','hype','satispay','bonifico'];
+    const altro        = !noti.some(n => pag.includes(n))     ? imp : '';
 
     righe.push([
       formatData(s.data),
-      contanti, bancMio, bancCond, bancPapa, hype, satispay, bonifico, altro,
-      s.tipologia || '', s.luogo || '',
-      s.euroLitro ? String(s.euroLitro).replace('.',',') : '',
-      s.numLitri  ? String(s.numLitri).replace('.',',')  : '',
-      s.km  || '',
-      s.euroKm  ? String(s.euroKm).replace('.',',')  : '',
-      s.kmLitro ? String(s.kmLitro).replace('.',',') : '',
+      contanti, bancMio, bancCond, bancPapa,
+      hype, satispay, bonifico, altro,
+      s.tipologia || '',
+      s.luogo || '',
+      s.euroLitro ? String(s.euroLitro).replace('.', ',') : '',
+      s.numLitri  ? String(s.numLitri).replace('.', ',')  : '',
+      s.km || '',
       (s.descrizione || '').replace(/;/g, ',')
     ].join(';'));
   });
 
-  const totale = tutteSpese.reduce((acc,s) => acc+s.importo, 0);
+  const totale = tutteSpese.reduce((acc, s) => acc + s.importo, 0);
   righe.push('');
-  righe.push('TOTALE;;;;;;;;;;' + totale.toFixed(2).replace('.',','));
+  righe.push('TOTALE SETTIMANA;;;;;;;;;' + totale.toFixed(2).replace('.', ','));
 
   const bom = '\uFEFF';
-  const blob = new Blob([bom + righe.join('\n')], { type: 'text/csv;charset=utf-8;' });
-  const dataInizio = formatData(new Date(new Date().setDate(new Date().getDate()-6)).toISOString().split('T')[0]);
+  const csvContent = bom + righe.join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+
+  const dataInizio = formatData(new Date(new Date().setDate(new Date().getDate() - 6)).toISOString().split('T')[0]);
   const dataFine   = formatData(oggi());
   const nomeFile   = 'Spese_' + dataInizio.replace(/\//g,'-') + '_' + dataFine.replace(/\//g,'-') + '.csv';
 
   const file = new File([blob], nomeFile, { type: 'text/csv' });
   if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-    navigator.share({ files: [file], title: `Spese ${dataInizio} - ${dataFine}` })
+    navigator.share({ files: [file], title: 'Spese settimana ' + dataInizio + ' - ' + dataFine })
       .catch(() => scaricaFile(blob, nomeFile));
   } else {
     scaricaFile(blob, nomeFile);
@@ -865,23 +632,8 @@ function _scaricaCSV(tutteSpese) {
 function scaricaFile(blob, nomeFile) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = nomeFile; a.click();
+  a.href = url;
+  a.download = nomeFile;
+  a.click();
   URL.revokeObjectURL(url);
-}
-
-// ─── Condivisione Telegram ───────────────────────────────
-async function condividiPDFTelegram() {
-  await condividi(); // riusa la funzione condividi che già funziona bene
-}
-
-async function condividiCSVTelegram() {
-  const tutteSpese = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(); d.setDate(d.getDate()-i);
-    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), g = String(d.getDate()).padStart(2,'0');
-    JSON.parse(localStorage.getItem(keyPerData(`${y}-${m}-${g}`)) || '[]').forEach(s => tutteSpese.push(s));
-  }
-  if (!tutteSpese.length) { alert("Nessuna spesa nell'ultima settimana."); return; }
-  tutteSpese.sort((a,b) => new Date(b.data) - new Date(a.data));
-  _scaricaCSV(tutteSpese);
 }
