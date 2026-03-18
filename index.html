@@ -176,6 +176,35 @@
       <h1>⚙️ Impostazioni</h1>
     </header>
     <main>
+
+      <!-- SEZIONE BACKUP -->
+      <section class="form-card">
+        <h2>💾 Backup &amp; Ripristino</h2>
+        <p style="font-size:0.82rem;color:#888;margin-bottom:16px">
+          Esporta tutte le tue spese in un file di backup. Puoi inviarlo su Telegram, salvarlo su Drive e reimportarlo su qualsiasi dispositivo.
+        </p>
+
+        <button class="btn-backup" onclick="esportaBackup()">
+          📦 Crea &amp; Condividi Backup
+        </button>
+
+        <div style="margin-top:10px;padding:10px 12px;background:#f5f9ff;border-radius:8px;font-size:0.82rem;color:#666">
+          ✅ Include: tutte le spese storiche, foto, tipologie personalizzate<br>
+          📅 Nome file: <em>Backup_Spese_[data].json</em>
+        </div>
+
+        <div style="border-top:1px solid #eee;margin-top:16px;padding-top:16px">
+          <p style="font-size:0.82rem;color:#888;margin-bottom:10px">
+            ⚠️ Il ripristino <strong>aggiunge</strong> le spese del backup a quelle già presenti (non sovrascrive).
+          </p>
+          <button class="btn-ripristina" onclick="document.getElementById('import-backup-input').click()">
+            📥 Ripristina da Backup
+          </button>
+          <input type="file" id="import-backup-input" accept=".json" style="display:none" onchange="importaBackup(event)"/>
+        </div>
+      </section>
+
+      <!-- SEZIONE TIPOLOGIE -->
       <section class="form-card">
         <h2>🏷️ Gestione Tipologie</h2>
         <p style="font-size:0.82rem;color:#888;margin-bottom:12px">Le tipologie <strong>Sistema</strong> non possono essere eliminate. Quelle personali sono modificabili.</p>
@@ -214,8 +243,8 @@
         <div style="border-top:1px solid #eee;padding-top:16px">
           <div style="font-size:0.78rem;color:#aaa;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">Sviluppato da</div>
           <div style="font-size:1.05rem;font-weight:700;color:#333;margin-bottom:12px">Patrizio F.</div>
-          <a href="mailto:ing.patrizio@libero.it" style="display:inline-block;background:#1976d2;color:white;padding:9px 22px;border-radius:20px;font-size:0.88rem;font-weight:600;text-decoration:none">
-            ✉️ ing.patrizio@libero.it
+          <a href="/cdn-cgi/l/email-protection#31585f561f41504543584b585e715d585354435e1f5845" style="display:inline-block;background:#1976d2;color:white;padding:9px 22px;border-radius:20px;font-size:0.88rem;font-weight:600;text-decoration:none">
+            ✉️ <span class="__cf_email__" data-cfemail="3950575e1749584d4b504350567955505b5c4b5617504d">[email&#160;protected]</span>
           </a>
         </div>
         <div style="margin-top:18px;font-size:0.75rem;color:#ccc">© 2026 · Tutti i diritti riservati</div>
@@ -248,12 +277,4 @@
       <div class="cl-body" id="update-modal-body"></div>
       <div class="cl-footer">
         <button class="cl-btn-cerca" onclick="applyUpdate(); chiudiUpdateModal()">⚡ Aggiorna ora</button>
-        <button class="cl-btn-chiudi" onclick="chiudiUpdateModal()">Più tardi</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="version.js"></script>
-  <script src="app.js"></script>
-</body>
-</html>
+        <button class="cl-btn-chiudi" onclick="chiudiUpdateModal()"

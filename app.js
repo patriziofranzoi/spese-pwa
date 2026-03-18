@@ -714,7 +714,105 @@ function _generaCSV(tutteSpese) {
     navigator.share({files:[file],title:`Spese ${dI}-${dF}`}).catch(()=>scaricaFile(blob,nome));
   else scaricaFile(blob,nome);
 }
-function scaricaFile(blob,nome) {
+// ─── Backup & Ripristino ──────────────────────────────────
+function esportaBackup() {
+  // Raccoglie TUTTE le spese da localStorage
+  const tutteLeSpese = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('spese_')) {
+      const data = key.replace('spese_', '');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) continue;
+      const arr = JSON.parse(localStorage.getItem(key) || '[]');
+      if (arr.length > 0) tutteLeSpese[data] = arr;
+    }
+  }
+
+  const backup = {
+    versione:   APP_VERSION,
+    dataBackup: oggi(),
+    oraBackup:  new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}),
+    tipologieCustom: getTipologieCustom(),
+    spese: tutteLeSpese
+  };
+
+  const json     = JSON.stringify(backup, null, 2);
+  const blob     = new Blob([json], { type: 'application/json;charset=utf-8;' });
+  const nomeFile = `Backup_Spese_${oggi()}.json`;
+  const file     = new File([blob], nomeFile, { type: 'application/json' });
+
+  // Su mobile tenta la condivisione nativa (Telegram, Drive, WhatsApp...)
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    navigator.share({
+      files: [file],
+      title: 'Backup Spese',
+      text:  `Backup spese del ${formatData(oggi())}`
+    }).catch(() => scaricaFile(blob, nomeFile));
+  } else {
+    scaricaFile(blob, nomeFile);
+  }
+}
+
+function importaBackup(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = '';
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const backup = JSON.parse(e.target.result);
+
+      // Validazione base
+      if (!backup.spese || typeof backup.spese !== 'object') {
+        alert('❌ File non valido. Assicurati di selezionare un backup creato da questa app.');
+        return;
+      }
+
+      let dateImportate = 0;
+      let speseImportate = 0;
+
+      // Importa le spese giorno per giorno — AGGIUNGE a quelle esistenti
+      Object.entries(backup.spese).forEach(([data, arrBackup]) => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return;
+        const esistenti = JSON.parse(localStorage.getItem(keyPerData(data)) || '[]');
+        // Evita duplicati confrontando gli id
+        const idEsistenti = new Set(esistenti.map(s => s.id));
+        const nuove = arrBackup.filter(s => !idEsistenti.has(s.id));
+        if (nuove.length > 0) {
+          localStorage.setItem(keyPerData(data), JSON.stringify([...esistenti, ...nuove]));
+          speseImportate += nuove.length;
+          dateImportate++;
+        }
+      });
+
+      // Importa anche tipologie personalizzate se presenti
+      if (backup.tipologieCustom && Array.isArray(backup.tipologieCustom)) {
+        const esistenti = getTipologieCustom();
+        const valoriEsistenti = new Set(esistenti.map(t => t.valore));
+        const nuove = backup.tipologieCustom.filter(t => !valoriEsistenti.has(t.valore));
+        if (nuove.length > 0) {
+          salvaTipologieCustom([...esistenti, ...nuove]);
+        }
+      }
+
+      if (speseImportate === 0) {
+        alert('ℹ️ Nessuna spesa nuova da importare — tutte le spese del backup sono già presenti.');
+      } else {
+        alert(`✅ Importazione completata!\n\n📅 Giorni importati: ${dateImportate}\n💶 Spese aggiunte: ${speseImportate}\n\nChiudi le impostazioni per vedere le spese di oggi.`);
+        // Ricarica le spese di oggi se presenti nel backup
+        caricaSpeseDiOggi();
+      }
+
+    } catch(err) {
+      console.error('Errore importazione:', err);
+      alert('❌ Errore durante l\'importazione. Il file potrebbe essere corrotto.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+
   const url=URL.createObjectURL(blob); const a=document.createElement('a');
   a.href=url; a.download=nome; a.click(); URL.revokeObjectURL(url);
 }

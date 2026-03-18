@@ -276,6 +276,20 @@ input[readonly] { background: #f5f5f5; color: #888; }
 .tip-btn-del { background: transparent; border: none; color: #e53935; font-size: 1.1rem; cursor: pointer; padding: 4px 6px; flex-shrink: 0; }
 .tip-separatore { font-size: 0.75rem; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; padding: 12px 0 4px; }
 
+/* ─── Backup & Ripristino ─── */
+.btn-backup {
+  width: 100%; padding: 13px; border: none; border-radius: 10px;
+  background: #1976d2; color: white; font-size: 1rem; font-weight: 700;
+  cursor: pointer; transition: background 0.2s;
+}
+.btn-backup:hover { background: #1565c0; }
+.btn-ripristina {
+  width: 100%; padding: 13px; border: 2px solid #43a047; border-radius: 10px;
+  background: white; color: #43a047; font-size: 1rem; font-weight: 700;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-ripristina:hover { background: #43a047; color: white; }
+
 /* ─── Changelog Modal ─── */
 .cl-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 10001; display: flex; align-items: center; justify-content: center; padding: 16px; }
 .cl-overlay.hidden { display: none !important; }
