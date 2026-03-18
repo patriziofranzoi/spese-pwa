@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
+
   <div id="update-banner" class="hidden">
     <span>🔄 Nuova versione disponibile!</span>
     <button onclick="applyUpdate()">Aggiorna ora</button>
@@ -19,7 +20,7 @@
   <div id="schermata-principale">
     <header>
       <h1>💶 Gestione Spese</h1>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;flex-shrink:0">
         <button class="btn-archivio" onclick="apriImpostazioni()">⚙️</button>
         <button class="btn-archivio" onclick="apriArchivio()">📂 Archivio</button>
       </div>
@@ -61,9 +62,10 @@
 
         <label>Tipologia</label>
         <select id="tipologia" onchange="onTipologiaChange()">
-          <!-- Popolato dinamicamente da JS -->
+          <!-- Popolato da JS -->
         </select>
 
+        <!-- Sezione Spesa Supermercato -->
         <div id="sezione-spesa" class="hidden sub-group">
           <label>Supermercato</label>
           <select id="luogo-spesa" onchange="document.getElementById('luogo-altro-div').classList.toggle('hidden', this.value !== 'altro')">
@@ -83,13 +85,29 @@
           </div>
         </div>
 
+        <!-- Sezione Benzinaio -->
         <div id="sezione-rifornimento" class="hidden sub-group">
           <label>€/Litro</label>
-          <input type="text" inputmode="numeric" id="euro-litro" placeholder="0,000" oninput="onEuroLitroInput(this)"/>
+          <input type="text" inputmode="numeric" id="euro-litro" placeholder="0,000"
+                 oninput="onEuroLitroInput(this)"/>
+
           <label>Litri (calcolati automaticamente)</label>
           <input type="number" id="num-litri" placeholder="Calcolato in automatico" readonly/>
+
           <label>Km percorsi (opzionale)</label>
-          <input type="number" id="km-percorsi" placeholder="es. 450" min="0"/>
+          <input type="number" id="km-percorsi" placeholder="es. 450" min="0"
+                 oninput="calcolaConsumi()"/>
+
+          <div class="consumi-grid">
+            <div>
+              <label>€/km</label>
+              <input type="number" id="euro-km" placeholder="—" readonly/>
+            </div>
+            <div>
+              <label>km/Litro</label>
+              <input type="number" id="km-litro" placeholder="—" readonly/>
+            </div>
+          </div>
         </div>
 
         <label>Descrizione (opzionale)</label>
@@ -100,9 +118,9 @@
           <button type="button" onclick="scattaFoto()">📷 Fotocamera</button>
           <button type="button" onclick="selezionaGalleria()">🖼️ Galleria</button>
         </div>
-        <!-- Due input separati: uno per camera, uno per galleria -->
-        <input type="file" id="foto-input-camera" accept="image/*" capture="environment" style="display:none" onchange="onFotoSelezionata(event)"/>
-        <input type="file" id="foto-input-galleria" accept="image/*" style="display:none" onchange="onFotoSelezionata(event)"/>
+        <!-- Due input separati: camera con capture, galleria senza -->
+        <input type="file" id="foto-input-camera"   accept="image/*" capture="environment" style="display:none" onchange="onFotoSelezionata(event)"/>
+        <input type="file" id="foto-input-galleria"  accept="image/*"                       style="display:none" onchange="onFotoSelezionata(event)"/>
         <div id="foto-preview-container"></div>
 
         <button class="btn-aggiungi" id="btn-aggiungi" onclick="aggiungiSpesa()">➕ Aggiungi Spesa</button>
@@ -118,18 +136,18 @@
           <div class="totale" id="totale-generale"></div>
         </div>
         <div id="azioni-export" class="azioni-export" style="display:none">
-          <button onclick="scaricaPDF()">📄 Salva PDF</button>
+          <button onclick="scaricaPDF()">📄 PDF</button>
           <button onclick="condividi()">📤 Condividi</button>
-          <button onclick="esportaCSVSettimana()">📊 CSV Settimana</button>
-          <button onclick="condividiPDFTelegram()">✈️ PDF → Telegram</button>
-          <button onclick="condividiCSVTelegram()">✈️ CSV → Telegram</button>
+          <button onclick="esportaCSVSettimana()">📊 CSV</button>
+          <button onclick="condividiPDFTelegram()">✈️ PDF Telegram</button>
+          <button onclick="condividiCSVTelegram()">✈️ CSV Telegram</button>
         </div>
       </section>
     </main>
   </div>
 
   <!-- ═══ SCHERMATA ARCHIVIO ═══ -->
-  <div id="schermata-archivio" class="hidden">
+  <div id="schermata-archivio" class="hidden schermata-full">
     <header>
       <button class="btn-back" onclick="chiudiArchivio()">← Oggi</button>
       <h1>📂 Archivio Spese</h1>
@@ -152,7 +170,7 @@
   </div>
 
   <!-- ═══ SCHERMATA IMPOSTAZIONI ═══ -->
-  <div id="schermata-impostazioni" class="hidden">
+  <div id="schermata-impostazioni" class="hidden schermata-full">
     <header>
       <button class="btn-back" onclick="chiudiImpostazioni()">← Indietro</button>
       <h1>⚙️ Impostazioni</h1>
@@ -160,22 +178,20 @@
     <main>
       <section class="form-card">
         <h2>🏷️ Gestione Tipologie</h2>
-        <p style="font-size:0.85rem;color:#888;margin-bottom:14px">
-          Le tipologie con ⚙️ sono di sistema e non eliminabili. Puoi aggiungerne di nuove o rinominare quelle personali.
+        <p style="font-size:0.82rem;color:#888;margin-bottom:12px">
+          Le tipologie <strong>Sistema</strong> non possono essere eliminate. Quelle personali sono modificabili e rimovibili.
         </p>
         <div id="tipologie-lista"></div>
-        <div style="display:flex;gap:8px;margin-top:14px">
-          <input type="text" id="nuova-tipologia-input" placeholder="Es. Farmacia, Abbigliamento..." style="flex:1"/>
-          <button class="btn-aggiungi" style="width:auto;padding:10px 16px;margin:0" onclick="aggiuntaTipologia()">➕ Aggiungi</button>
+        <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
+          <input type="text" id="nuova-tipologia-input" placeholder="Es. Cinema, Sport..." style="flex:1"/>
+          <button class="btn-aggiungi" style="width:auto;padding:10px 16px;margin:0" onclick="aggiuntaTipologia()">➕</button>
         </div>
       </section>
     </main>
   </div>
 
   <!-- Version badge -->
-  <div class="version-badge" onclick="apriChangelog()" title="Tocca per vedere le novità">
-    v<span id="app-version"></span> <span style="opacity:0.6">📋</span>
-  </div>
+  <div class="version-badge" onclick="apriChangelog()">v<span id="app-version"></span> 📋</div>
 
   <!-- MODAL CHANGELOG -->
   <div id="changelog-modal" class="cl-overlay hidden">
@@ -192,12 +208,10 @@
     </div>
   </div>
 
-  <!-- MODAL NUOVO AGGIORNAMENTO -->
+  <!-- MODAL AGGIORNAMENTO -->
   <div id="update-modal" class="cl-overlay hidden">
     <div class="cl-box">
-      <div class="cl-header">
-        <span>🔄 Aggiornamento disponibile!</span>
-      </div>
+      <div class="cl-header"><span>🔄 Aggiornamento disponibile!</span></div>
       <div class="cl-body" id="update-modal-body"></div>
       <div class="cl-footer">
         <button class="cl-btn-cerca" onclick="applyUpdate(); chiudiUpdateModal()">⚡ Aggiorna ora</button>
@@ -206,140 +220,6 @@
     </div>
   </div>
 
-  <script src="version.js"></script>
-  <script src="app.js"></script>
-</body>
-</html>
-    <main>
-      <section class="form-card" id="form-section">
-        <h2>Aggiungi Spesa</h2>
-
-        <label>Data</label>
-        <input type="date" id="data-spesa" />
-
-        <label>Importo (€)</label>
-        <input type="text" inputmode="numeric" id="importo" placeholder="0,00"
-               oninput="onImportoInput(this)"/>
-
-        <label>Tipo Pagamento</label>
-        <select id="tipo-pagamento" onchange="onTipoPagamentoChange()">
-          <option value="bancomat" selected>Bancomat</option>
-          <option value="contanti">Contanti</option>
-          <option value="bonifico">Bonifico</option>
-          <option value="hype">Hype</option>
-          <option value="satispay">Satispay</option>
-          <option value="altro">Altro</option>
-        </select>
-
-        <div id="bancomat-sub" class="sub-group">
-          <label>Bancomat</label>
-          <div class="radio-group">
-            <label><input type="radio" name="bancomat-tipo" value="mio" checked/> Mio</label>
-            <label><input type="radio" name="bancomat-tipo" value="condiviso"/> Condiviso</label>
-            <label><input type="radio" name="bancomat-tipo" value="papà"/> Papà</label>
-          </div>
-        </div>
-
-        <div id="altro-pagamento-div" class="hidden sub-group">
-          <label>Specifica tipo pagamento</label>
-          <input type="text" id="altro-pagamento-text" placeholder="es. PayPal..."/>
-        </div>
-
-        <label>Tipologia</label>
-        <select id="tipologia" onchange="onTipologiaChange()">
-          <option value="generale" selected>Spesa Generale</option>
-          <option value="spesa">Spesa Supermercato</option>
-          <option value="rifornimento">Rifornimento</option>
-        </select>
-
-        <div id="sezione-spesa" class="hidden sub-group">
-          <label>Supermercato</label>
-          <select id="luogo-spesa" onchange="document.getElementById('luogo-altro-div').classList.toggle('hidden', this.value !== 'altro')">
-            <option value="Eurospin">Eurospin</option>
-            <option value="Prix">Prix</option>
-            <option value="Tosano">Tosano</option>
-            <option value="Aldì">Aldì</option>
-            <option value="Lidl">Lidl</option>
-            <option value="Pam">Pam</option>
-            <option value="Famila">Famila</option>
-            <option value="Emisfero">Emisfero</option>
-            <option value="Alì">Alì</option>
-            <option value="altro">Altro…</option>
-          </select>
-          <div id="luogo-altro-div" class="hidden" style="margin-top:8px">
-            <input type="text" id="luogo-altro" placeholder="Scrivi il nome..."/>
-          </div>
-        </div>
-
-        <div id="sezione-rifornimento" class="hidden sub-group">
-          <label>€/Litro</label>
-          <input type="number" id="euro-litro" placeholder="es. 1.85" step="0.001" min="0" oninput="calcolaLitri()"/>
-          <label>Litri (calcolati automaticamente)</label>
-          <input type="number" id="num-litri" placeholder="Calcolato in automatico" readonly/>
-          <label>Km percorsi (opzionale)</label>
-          <input type="number" id="km-percorsi" placeholder="es. 450" min="0"/>
-        </div>
-
-        <label>Descrizione (opzionale)</label>
-        <input type="text" id="descrizione" placeholder="Nota breve..."/>
-
-        <label>Foto (opzionale)</label>
-        <div class="foto-btn-group">
-          <button type="button" onclick="scattaFoto()">📷 Fotocamera</button>
-          <button type="button" onclick="selezionaGalleria()">🖼️ Galleria</button>
-        </div>
-        <input type="file" id="foto-input" accept="image/*" style="display:none" onchange="onFotoSelezionata(event)"/>
-        <div id="foto-preview-container"></div>
-
-        <button class="btn-aggiungi" id="btn-aggiungi" onclick="aggiungiSpesa()">➕ Aggiungi Spesa</button>
-        <button class="btn-annulla hidden" id="btn-annulla-modifica" onclick="annullaModifica()">✕ Annulla Modifica</button>
-      </section>
-
-      <section class="lista-section">
-        <h2>Spese del giorno <span id="data-display"></span></h2>
-        <div id="lista-spese"></div>
-        <div class="riepilogo" id="riepilogo" style="display:none">
-          <h3>📊 Riepilogo</h3>
-          <div id="riepilogo-content"></div>
-          <div class="totale" id="totale-generale"></div>
-        </div>
-        <div id="azioni-export" class="azioni-export" style="display:none">
-          <button onclick="scaricaPDF()">📄 Salva PDF</button>
-          <button onclick="condividi()">📤 Condividi</button>
-          <button onclick="esportaCSVSettimana()">📊 CSV Settimana</button>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <!-- ═══ SCHERMATA ARCHIVIO ═══ -->
-  <div id="schermata-archivio" class="hidden">
-    <header>
-      <button class="btn-back" onclick="chiudiArchivio()">← Oggi</button>
-      <h1>📂 Archivio Spese</h1>
-    </header>
-
-    <!-- Lista date -->
-    <div id="archivio-lista-date">
-      <main>
-        <div id="archivio-date-list"></div>
-      </main>
-    </div>
-
-    <!-- Dettaglio giornata -->
-    <div id="archivio-dettaglio" class="hidden">
-      <div class="archivio-dettaglio-header">
-        <button class="btn-back" onclick="tornaAllaLista()">← Archivio</button>
-        <h2 id="archivio-dettaglio-titolo"></h2>
-      </div>
-      <main>
-        <div id="archivio-dettaglio-lista"></div>
-        <div class="totale archivio-totale-box" id="archivio-dettaglio-totale"></div>
-      </main>
-    </div>
-  </div>
-
-  <div class="version-badge">v<span id="app-version"></span></div>
   <script src="version.js"></script>
   <script src="app.js"></script>
 </body>
