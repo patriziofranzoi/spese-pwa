@@ -1,3 +1,10 @@
+// ─── Tipologie di sistema (non eliminabili) ───────────────
+const TIPOLOGIE_SISTEMA = [
+  { valore: 'generale',     label: 'Spesa Generale' },
+  { valore: 'spesa',        label: 'Spesa Supermercato' },
+  { valore: 'rifornimento', label: 'Rifornimento' },
+];
+
 // ─── State ───────────────────────────────────────────────
 let spese = [];
 let fotoTemporanee = [];
@@ -9,11 +16,13 @@ let spesaInModifica = null;
 document.addEventListener('DOMContentLoaded', () => {
   impostaDataOggi();
   caricaSpeseDiOggi();
+  popolaTipologie();
   onTipologiaChange();
   onTipoPagamentoChange();
   document.getElementById('app-version').textContent = APP_VERSION + ' - ' + APP_VERSION_DATE;
   registraServiceWorker();
   window.addEventListener('beforeunload', salvaSpeseDiOggi);
+  controllaVersioneNuova();
 });
 
 function oggi() {
@@ -67,12 +76,125 @@ function onTipoPagamentoChange() {
   document.getElementById('altro-pagamento-div').classList.toggle('hidden', val !== 'altro');
 }
 
+// ─── Tipologie dinamiche ─────────────────────────────────
+function getTipologieCustom() {
+  const raw = localStorage.getItem('tipologie_custom');
+  if (raw) return JSON.parse(raw);
+  // Default personalizzate pre-caricate
+  return [
+    { valore: 'farmacia',   label: '💊 Farmacia' },
+    { valore: 'personali',  label: '👤 Personali' },
+    { valore: 'casa',       label: '🏠 Casa' },
+  ];
+}
+
+function salvaTipologieCustom(arr) {
+  localStorage.setItem('tipologie_custom', JSON.stringify(arr));
+}
+
+function tutteLeTipologie() {
+  return [...TIPOLOGIE_SISTEMA, ...getTipologieCustom()];
+}
+
+function popolaTipologie(valoreSelezionato = null) {
+  const sel = document.getElementById('tipologia');
+  const currentVal = valoreSelezionato || sel.value || 'generale';
+  sel.innerHTML = '';
+  tutteLeTipologie().forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.valore;
+    opt.textContent = t.label;
+    if (t.valore === currentVal) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  onTipologiaChange();
+}
+
 // ─── Tipologia ───────────────────────────────────────────
 function onTipologiaChange() {
   const val = document.getElementById('tipologia').value;
   document.getElementById('sezione-spesa').classList.toggle('hidden', val !== 'spesa');
   document.getElementById('sezione-rifornimento').classList.toggle('hidden', val !== 'rifornimento');
   if (val === 'rifornimento') calcolaLitri();
+}
+
+// ─── Schermata Impostazioni ──────────────────────────────
+function apriImpostazioni() {
+  document.getElementById('schermata-principale').classList.add('hidden');
+  document.getElementById('schermata-impostazioni').classList.remove('hidden');
+  renderTipologieLista();
+}
+
+function chiudiImpostazioni() {
+  document.getElementById('schermata-impostazioni').classList.add('hidden');
+  document.getElementById('schermata-principale').classList.remove('hidden');
+  popolaTipologie();
+}
+
+function renderTipologieLista() {
+  const container = document.getElementById('tipologie-lista');
+  container.innerHTML = '';
+  const custom = getTipologieCustom();
+
+  // Tipologie di sistema (non modificabili)
+  TIPOLOGIE_SISTEMA.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'tip-row tip-sistema';
+    row.innerHTML = `
+      <span class="tip-label">⚙️ ${t.label}</span>
+      <span class="tip-badge-sistema">Sistema</span>
+    `;
+    container.appendChild(row);
+  });
+
+  // Separatore
+  if (custom.length > 0) {
+    const sep = document.createElement('div');
+    sep.className = 'tip-separatore';
+    sep.textContent = 'Tipologie personali';
+    container.appendChild(sep);
+  }
+
+  // Tipologie custom (modificabili/eliminabili)
+  custom.forEach((t, idx) => {
+    const row = document.createElement('div');
+    row.className = 'tip-row';
+    row.innerHTML = `
+      <input type="text" class="tip-input" value="${t.label}" 
+             onchange="rinominaTipologia(${idx}, this.value)" />
+      <button class="tip-btn-del" onclick="eliminaTipologia(${idx})">🗑️</button>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function aggiuntaTipologia() {
+  const input = document.getElementById('nuova-tipologia-input');
+  const label = input.value.trim();
+  if (!label) { alert('Inserisci un nome per la tipologia.'); return; }
+
+  // Genera valore univoco dal label
+  const valore = 'custom_' + label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') + '_' + Date.now();
+  const custom = getTipologieCustom();
+  custom.push({ valore, label });
+  salvaTipologieCustom(custom);
+  input.value = '';
+  renderTipologieLista();
+}
+
+function rinominaTipologia(idx, nuovoLabel) {
+  if (!nuovoLabel.trim()) return;
+  const custom = getTipologieCustom();
+  custom[idx].label = nuovoLabel.trim();
+  salvaTipologieCustom(custom);
+}
+
+function eliminaTipologia(idx) {
+  const custom = getTipologieCustom();
+  if (!confirm(`Eliminare la tipologia "${custom[idx].label}"?`)) return;
+  custom.splice(idx, 1);
+  salvaTipologieCustom(custom);
+  renderTipologieLista();
 }
 
 function onImportoInput(el) {
@@ -92,18 +214,6 @@ function importoAsFloat() {
   return parseFloat(val) || 0;
 }
 
-function onEuroLitroInput(el) {
-  // Rimuove tutto tranne le cifre
-  let val = el.value.replace(/\D/g, '');
-  if (val === '') { el.value = ''; calcolaLitri(); return; }
-  // Virgola automatica: ultime 3 cifre = millesimi (es. 1857 → 1,857)
-  val = val.padStart(4, '0');
-  const euro = parseInt(val.slice(0, -3), 10);
-  const milli = val.slice(-3);
-  el.value = euro + ',' + milli;
-  calcolaLitri();
-}
-
 function euroLitroAsFloat() {
   const val = document.getElementById('euro-litro').value.replace(',', '.');
   return parseFloat(val) || 0;
@@ -119,19 +229,25 @@ function calcolaLitri() {
   }
 }
 
+function onEuroLitroInput(el) {
+  let val = el.value.replace(/\D/g, '');
+  if (val === '') { el.value = ''; calcolaLitri(); return; }
+  val = val.padStart(4, '0');
+  const euro = parseInt(val.slice(0, -3), 10);
+  const milli = val.slice(-3);
+  el.value = euro + ',' + milli;
+  calcolaLitri();
+}
+
 // ─── Foto ────────────────────────────────────────────────
 function scattaFoto() {
-  const input = document.getElementById('foto-input');
-  input.setAttribute('capture', 'environment');
-  input.setAttribute('accept', 'image/*');
-  input.click();
+  // Input dedicato fotocamera (con capture="environment")
+  document.getElementById('foto-input-camera').click();
 }
 
 function selezionaGalleria() {
-  const input = document.getElementById('foto-input');
-  input.removeAttribute('capture');
-  input.setAttribute('accept', 'image/*');
-  input.click();
+  // Input dedicato galleria (SENZA capture, apre direttamente la galleria)
+  document.getElementById('foto-input-galleria').click();
 }
 
 function onFotoSelezionata(event) {
@@ -202,7 +318,10 @@ function aggiungiSpesa() {
     km = document.getElementById('km-percorsi').value.trim();
   }
 
-  const tipologiaLabel = tipologia === 'spesa' ? 'Spesa' : tipologia === 'rifornimento' ? 'Rifornimento' : 'Spesa Generale';
+  // Ricava la label dalla lista completa delle tipologie
+  const tutteT = tutteLeTipologie();
+  const trovata = tutteT.find(t => t.valore === tipologia);
+  const tipologiaLabel = trovata ? trovata.label : tipologia;
 
   if (spesaInModifica !== null) {
     const idx = spese.findIndex(s => s.id === spesaInModifica);
@@ -242,9 +361,10 @@ function modificaSpesa(id) {
   selectPag.value = opzioniPag.includes(tipoPagBase) ? tipoPagBase : 'altro';
   onTipoPagamentoChange();
 
-  let tipVal = 'generale';
-  if (s.tipologia === 'Spesa') tipVal = 'spesa';
-  else if (s.tipologia === 'Rifornimento') tipVal = 'rifornimento';
+  // Trova il valore della tipologia dalla label salvata
+  const tutteT = tutteLeTipologie();
+  const trovata = tutteT.find(t => t.label === s.tipologia);
+  const tipVal = trovata ? trovata.valore : 'generale';
   document.getElementById('tipologia').value = tipVal;
   onTipologiaChange();
 
@@ -649,103 +769,4 @@ function scaricaFile(blob, nomeFile) {
   a.download = nomeFile;
   a.click();
   URL.revokeObjectURL(url);
-}
-
-// ─── Condivisione Telegram ───────────────────────────────
-async function condividiPDFTelegram() {
-  const dataOggi = formatData(oggi());
-  // Genera contenuto HTML del PDF come testo per Telegram
-  let testo = `📄 *Spese PDF — ${dataOggi}*\n\n`;
-  [...spese].sort((a, b) => new Date(a.data) - new Date(b.data)).forEach((s, i) => {
-    testo += `${i + 1}. ${s.tipologia} — *€ ${s.importo.toFixed(2)}*\n`;
-    testo += `   💳 ${s.tipoPagamento}`;
-    if (s.luogo) testo += `  🏪 ${s.luogo}`;
-    if (s.tipologia === 'Rifornimento') {
-      if (s.euroLitro) testo += `\n   ⛽ €${s.euroLitro}/L`;
-      if (s.numLitri) testo += `  🔢 ${s.numLitri}L`;
-      if (s.km) testo += `  🛣️ ${s.km} km`;
-    }
-    if (s.descrizione) testo += `\n   📝 ${s.descrizione}`;
-    testo += '\n\n';
-  });
-  testo += `─────────────────\n💰 *TOTALE: € ${spese.reduce((a, s) => a + s.importo, 0).toFixed(2)}*`;
-
-  // Prova condivisione nativa (Android/iOS apre Telegram se installato)
-  if (navigator.share) {
-    try {
-      await navigator.share({ title: `Spese ${dataOggi}`, text: testo });
-      return;
-    } catch (e) {}
-  }
-  // Fallback: apri Telegram con il testo
-  const encoded = encodeURIComponent(testo);
-  window.open(`https://t.me/share/url?url=&text=${encoded}`, '_blank');
-}
-
-async function condividiCSVTelegram() {
-  const tutteSpese = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const chiave = d.toISOString().split('T')[0];
-    const arr = JSON.parse(localStorage.getItem(keyPerData(chiave)) || '[]');
-    arr.forEach(s => tutteSpese.push(s));
-  }
-
-  if (tutteSpese.length === 0) {
-    alert("Nessuna spesa nell'ultima settimana.");
-    return;
-  }
-
-  tutteSpese.sort((a, b) => new Date(b.data) - new Date(a.data));
-
-  const intestazioni = [
-    'Data', 'Contanti', 'Bancomat Mio', 'Bancomat Condiviso',
-    "Bancomat Papa", 'Hype', 'Satispay', 'Bonifico', 'Altro',
-    'Tipologia', 'Luogo / Supermercato', 'Euro/Litro', 'Litri', 'Km', 'Note'
-  ];
-  const righe = [intestazioni.join(';')];
-  tutteSpese.forEach(s => {
-    const imp = s.importo.toFixed(2).replace('.', ',');
-    const pag = s.tipoPagamento.toLowerCase();
-    const contanti  = pag === 'contanti'             ? imp : '';
-    const bancMio   = pag === 'bancomat - mio'       ? imp : '';
-    const bancCond  = pag === 'bancomat - condiviso' ? imp : '';
-    const bancPapa  = pag === 'bancomat - papà'      ? imp : '';
-    const hype      = pag === 'hype'                 ? imp : '';
-    const satispay  = pag === 'satispay'             ? imp : '';
-    const bonifico  = pag === 'bonifico'             ? imp : '';
-    const noti = ['contanti','bancomat - mio','bancomat - condiviso','bancomat - papà','hype','satispay','bonifico'];
-    const altro     = !noti.includes(pag)            ? imp : '';
-    righe.push([
-      formatData(s.data), contanti, bancMio, bancCond, bancPapa,
-      hype, satispay, bonifico, altro,
-      s.tipologia || '', s.luogo || '',
-      s.euroLitro ? String(s.euroLitro).replace('.', ',') : '',
-      s.numLitri  ? String(s.numLitri).replace('.', ',')  : '',
-      s.km || '', (s.descrizione || '').replace(/;/g, ',')
-    ].join(';'));
-  });
-  const totale = tutteSpese.reduce((acc, s) => acc + s.importo, 0);
-  righe.push('');
-  righe.push('TOTALE SETTIMANA;;;;;;;;;' + totale.toFixed(2).replace('.', ','));
-
-  const bom = '\uFEFF';
-  const csvContent = bom + righe.join('\n');
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const dataInizio = formatData(new Date(new Date().setDate(new Date().getDate() - 6)).toISOString().split('T')[0]);
-  const dataFine   = formatData(oggi());
-  const nomeFile   = 'Spese_' + dataInizio.replace(/\//g,'-') + '_' + dataFine.replace(/\//g,'-') + '.csv';
-  const file = new File([blob], nomeFile, { type: 'text/csv' });
-
-  // Prova condivisione nativa con file (Android apre Telegram con allegato)
-  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], title: 'Spese settimana ' + dataInizio + ' - ' + dataFine });
-      return;
-    } catch (e) {}
-  }
-  // Fallback: scarica il file
-  scaricaFile(blob, nomeFile);
-  alert('📂 File CSV salvato! Aprilo e condividilo manualmente su Telegram.');
 }
