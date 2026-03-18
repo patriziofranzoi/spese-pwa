@@ -66,7 +66,19 @@ function caricaSpeseDiOggi() {
   renderLista();
 }
 function salvaSpeseDiOggi() {
-  localStorage.setItem(keyPerData(oggi()), JSON.stringify(spese));
+  try {
+    localStorage.setItem(keyPerData(oggi()), JSON.stringify(spese));
+  } catch(e) {
+    // localStorage pieno — prova a salvare senza le foto
+    console.error('localStorage pieno, salvo senza foto:', e);
+    const speseSenzaFoto = spese.map(s => ({ ...s, foto: [] }));
+    try {
+      localStorage.setItem(keyPerData(oggi()), JSON.stringify(speseSenzaFoto));
+      alert('⚠️ Spazio esaurito: la spesa è stata salvata ma le foto non sono state conservate. Elimina vecchie spese per liberare spazio.');
+    } catch(e2) {
+      alert('❌ Errore: impossibile salvare. La memoria del dispositivo è piena.');
+    }
+  }
 }
 function tutteLeDate() {
   const date = [];
@@ -232,13 +244,50 @@ function selezionaGalleria() {
   const inp = document.getElementById('foto-input-galleria');
   if (inp) inp.click();
 }
+// ─── Foto con compressione automatica ────────────────────
+// Le foto vengono ridimensionate a max 800px e compresse
+// per stare dentro il limite di localStorage (~5MB totale)
 function onFotoSelezionata(event) {
   for (const file of event.target.files) {
-    const reader = new FileReader();
-    reader.onload = e => { fotoTemporanee.push(e.target.result); renderFotoPreview(); };
-    reader.readAsDataURL(file);
+    comprimiFoto(file).then(dataUrl => {
+      fotoTemporanee.push(dataUrl);
+      renderFotoPreview();
+    }).catch(err => {
+      console.error('Errore compressione foto:', err);
+      alert('Errore nel caricamento della foto. Riprova.');
+    });
   }
   event.target.value = '';
+}
+
+function comprimiFoto(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        // Ridimensiona a max 800px mantenendo proporzioni
+        const MAX = 800;
+        let w = img.width;
+        let h = img.height;
+        if (w > h && w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+        else if (h > MAX)     { w = Math.round(w * MAX / h); h = MAX; }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+
+        // Qualità 0.7 = buon compromesso qualità/peso (~50-150KB)
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        resolve(dataUrl);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
 }
 function renderFotoPreview() {
   const container = document.getElementById('foto-preview-container');
