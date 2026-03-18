@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
+
   <div id="update-banner" class="hidden">
     <span>🔄 Nuova versione disponibile!</span>
     <button onclick="applyUpdate()">Aggiorna ora</button>
@@ -19,9 +20,10 @@
   <div id="schermata-principale">
     <header>
       <h1>💶 Gestione Spese</h1>
-      <div style="display:flex;gap:8px;flex-shrink:0">
+      <div style="display:flex;gap:6px;flex-shrink:0">
         <button class="btn-archivio" onclick="apriInfo()">ℹ️</button>
-        <button class="btn-archivio" onclick="apriArchivio()">📂 Archivio</button>
+        <button class="btn-archivio" onclick="apriImpostazioni()">⚙️</button>
+        <button class="btn-archivio" onclick="apriArchivio()">📂</button>
       </div>
     </header>
     <main>
@@ -29,28 +31,29 @@
         <h2>Aggiungi Spesa</h2>
 
         <label>Data</label>
-        <input type="date" id="data-spesa" />
+        <input type="date" id="data-spesa"/>
 
         <label>Importo (€)</label>
-        <input type="text" inputmode="numeric" id="importo" placeholder="0,00"
-               oninput="onImportoInput(this)"/>
+        <input type="text" inputmode="numeric" id="importo" placeholder="0,00" oninput="onImportoInput(this)"/>
 
         <label>Tipo Pagamento</label>
         <select id="tipo-pagamento" onchange="onTipoPagamentoChange()">
-          <option value="bancomat" selected>Bancomat</option>
-          <option value="contanti">Contanti</option>
-          <option value="bonifico">Bonifico</option>
-          <option value="hype">Hype</option>
-          <option value="satispay">Satispay</option>
-          <option value="altro">Altro</option>
+          <option value="bancomat" selected>💳 Bancomat</option>
+          <option value="bonifico">🖥️ Bonifico</option>
+          <option value="contanti">🪙 Contanti</option>
+          <option value="f24">🟠 F24</option>
+          <option value="hype">🔵 Hype</option>
+          <option value="pagopa">🔷 PagoPa</option>
+          <option value="satispay">🔴 Satispay</option>
+          <option value="altro">✏️ Altro</option>
         </select>
 
         <div id="bancomat-sub" class="sub-group">
           <label>Bancomat</label>
           <div class="radio-group">
-            <label><input type="radio" name="bancomat-tipo" value="mio" checked/> Mio</label>
-            <label><input type="radio" name="bancomat-tipo" value="condiviso"/> Condiviso</label>
-            <label><input type="radio" name="bancomat-tipo" value="papà"/> Papà</label>
+            <label><input type="radio" name="bancomat-tipo" value="mio" checked/> 👤 Mio</label>
+            <label><input type="radio" name="bancomat-tipo" value="condiviso"/> 👥 Condiviso</label>
+            <label><input type="radio" name="bancomat-tipo" value="papà"/> 👨 Papà</label>
           </div>
         </div>
 
@@ -59,25 +62,30 @@
           <input type="text" id="altro-pagamento-text" placeholder="es. PayPal..."/>
         </div>
 
+        <label>Spese aggiuntive / commissioni (€) <span style="font-weight:normal;color:#aaa">opzionale</span></label>
+        <input type="text" inputmode="numeric" id="commissioni" placeholder="0,00" oninput="onCommissioniInput(this)"/>
+
         <label>Tipologia</label>
         <select id="tipologia" onchange="onTipologiaChange()">
-          <option value="generale" selected>Spesa Generale</option>
-          <option value="spesa">Spesa Supermercato</option>
-          <option value="rifornimento">Rifornimento</option>
+          <!-- Popolato da JS -->
         </select>
 
+        <!-- Sezione Spesa Supermercato -->
         <div id="sezione-spesa" class="hidden sub-group">
           <label>Supermercato</label>
           <select id="luogo-spesa" onchange="document.getElementById('luogo-altro-div').classList.toggle('hidden', this.value !== 'altro')">
-            <option value="Eurospin">Eurospin</option>
-            <option value="Prix">Prix</option>
-            <option value="Tosano">Tosano</option>
             <option value="Aldì">Aldì</option>
+            <option value="Alì">Alì</option>
+            <option value="Conad">Conad</option>
+            <option value="Dpiù">Dpiù</option>
+            <option value="Emisfero">Emisfero</option>
+            <option value="Esselunga">Esselunga</option>
+            <option value="Eurospin">Eurospin</option>
+            <option value="Famila">Famila</option>
             <option value="Lidl">Lidl</option>
             <option value="Pam">Pam</option>
-            <option value="Famila">Famila</option>
-            <option value="Emisfero">Emisfero</option>
-            <option value="Alì">Alì</option>
+            <option value="Prix">Prix</option>
+            <option value="Tosano">Tosano</option>
             <option value="altro">Altro…</option>
           </select>
           <div id="luogo-altro-div" class="hidden" style="margin-top:8px">
@@ -85,13 +93,24 @@
           </div>
         </div>
 
+        <!-- Sezione Benzinaio -->
         <div id="sezione-rifornimento" class="hidden sub-group">
           <label>€/Litro</label>
-          <input type="number" id="euro-litro" placeholder="es. 1.85" step="0.001" min="0" oninput="calcolaLitri()"/>
-          <label>Litri (calcolati automaticamente)</label>
-          <input type="number" id="num-litri" placeholder="Calcolato in automatico" readonly/>
+          <input type="text" inputmode="numeric" id="euro-litro" placeholder="0,000" oninput="onEuroLitroInput(this)"/>
+          <label>Litri (automatico)</label>
+          <input type="number" id="num-litri" placeholder="—" readonly/>
           <label>Km percorsi (opzionale)</label>
-          <input type="number" id="km-percorsi" placeholder="es. 450" min="0"/>
+          <input type="number" id="km-percorsi" placeholder="es. 450" min="0" oninput="calcolaConsumi()"/>
+          <div class="consumi-grid">
+            <div>
+              <label>€/km (automatico)</label>
+              <input type="number" id="euro-km" placeholder="—" readonly/>
+            </div>
+            <div>
+              <label>km/Litro (automatico)</label>
+              <input type="number" id="km-litro" placeholder="—" readonly/>
+            </div>
+          </div>
         </div>
 
         <label>Descrizione (opzionale)</label>
@@ -102,7 +121,8 @@
           <button type="button" onclick="scattaFoto()">📷 Fotocamera</button>
           <button type="button" onclick="selezionaGalleria()">🖼️ Galleria</button>
         </div>
-        <input type="file" id="foto-input" accept="image/*" style="display:none" onchange="onFotoSelezionata(event)"/>
+        <input type="file" id="foto-input-camera"  accept="image/*" capture="environment" style="display:none" onchange="onFotoSelezionata(event)"/>
+        <input type="file" id="foto-input-galleria" accept="image/*"                      style="display:none" onchange="onFotoSelezionata(event)"/>
         <div id="foto-preview-container"></div>
 
         <button class="btn-aggiungi" id="btn-aggiungi" onclick="aggiungiSpesa()">➕ Aggiungi Spesa</button>
@@ -118,29 +138,25 @@
           <div class="totale" id="totale-generale"></div>
         </div>
         <div id="azioni-export" class="azioni-export" style="display:none">
-          <button onclick="scaricaPDF()">📄 Salva PDF</button>
+          <button onclick="scaricaPDF()">📄 PDF</button>
           <button onclick="condividi()">📤 Condividi</button>
-          <button onclick="esportaCSVSettimana()">📊 CSV Settimana</button>
+          <button onclick="esportaCSVSettimana()">📊 CSV</button>
+          <button onclick="condividiPDFTelegram()">✈️ PDF</button>
+          <button onclick="condividiCSVTelegram()">✈️ CSV</button>
         </div>
       </section>
     </main>
   </div>
 
   <!-- ═══ SCHERMATA ARCHIVIO ═══ -->
-  <div id="schermata-archivio" class="hidden">
+  <div id="schermata-archivio" class="hidden schermata-full">
     <header>
       <button class="btn-back" onclick="chiudiArchivio()">← Oggi</button>
       <h1>📂 Archivio Spese</h1>
     </header>
-
-    <!-- Lista date -->
     <div id="archivio-lista-date">
-      <main>
-        <div id="archivio-date-list"></div>
-      </main>
+      <main><div id="archivio-date-list"></div></main>
     </div>
-
-    <!-- Dettaglio giornata -->
     <div id="archivio-dettaglio" class="hidden">
       <div class="archivio-dettaglio-header">
         <button class="btn-back" onclick="tornaAllaLista()">← Archivio</button>
@@ -153,15 +169,36 @@
     </div>
   </div>
 
-  <div class="version-badge">v<span id="app-version"></span></div>
+  <!-- ═══ SCHERMATA IMPOSTAZIONI ═══ -->
+  <div id="schermata-impostazioni" class="hidden schermata-full">
+    <header>
+      <button class="btn-back" onclick="chiudiImpostazioni()">← Indietro</button>
+      <h1>⚙️ Impostazioni</h1>
+    </header>
+    <main>
+      <section class="form-card">
+        <h2>🏷️ Gestione Tipologie</h2>
+        <p style="font-size:0.82rem;color:#888;margin-bottom:12px">Le tipologie <strong>Sistema</strong> non possono essere eliminate. Quelle personali sono modificabili.</p>
+        <div id="tipologie-lista"></div>
+        <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
+          <input type="text" id="nuova-tipologia-input" placeholder="Es. Cinema, Sport..." style="flex:1"/>
+          <button class="btn-aggiungi" style="width:auto;padding:10px 16px;margin:0" onclick="aggiuntaTipologia()">➕</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Version badge -->
+  <div class="version-badge" onclick="apriChangelog()">v<span id="app-version"></span> 📋</div>
+
   <!-- MODAL INFO APP -->
-  <div id="info-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:10001;align-items:center;justify-content:center;padding:16px">
-    <div style="background:white;border-radius:16px;width:100%;max-width:420px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.25);overflow:hidden">
-      <div style="background:#1976d2;color:white;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;font-size:1rem;font-weight:700">
+  <div id="info-modal" class="cl-overlay hidden">
+    <div class="cl-box">
+      <div class="cl-header">
         <span>ℹ️ Info App</span>
-        <button onclick="chiudiInfo()" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:50%;width:28px;height:28px;font-size:0.9rem;cursor:pointer">✕</button>
+        <button onclick="chiudiInfo()">✕</button>
       </div>
-      <div style="overflow-y:auto;padding:24px 20px;text-align:center;flex:1">
+      <div class="cl-body" style="text-align:center">
         <div style="font-size:3rem;margin-bottom:10px">💶</div>
         <div style="font-size:1.3rem;font-weight:700;color:#1976d2;margin-bottom:4px">Gestione Spese</div>
         <div style="font-size:0.82rem;color:#aaa;margin-bottom:20px">v<span id="info-version"></span></div>
@@ -183,8 +220,35 @@
         </div>
         <div style="margin-top:18px;font-size:0.75rem;color:#ccc">© 2026 · Tutti i diritti riservati</div>
       </div>
-      <div style="padding:12px 16px;border-top:1px solid #eee">
-        <button onclick="chiudiInfo()" style="width:100%;padding:10px;background:#f5f5f5;color:#555;border:none;border-radius:8px;font-size:0.9rem;font-weight:600;cursor:pointer">Chiudi</button>
+      <div class="cl-footer">
+        <button class="cl-btn-chiudi" style="flex:1" onclick="chiudiInfo()">Chiudi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CHANGELOG -->
+  <div id="changelog-modal" class="cl-overlay hidden">
+    <div class="cl-box">
+      <div class="cl-header">
+        <span>📋 Novità &amp; Aggiornamenti</span>
+        <button onclick="chiudiChangelog()">✕</button>
+      </div>
+      <div class="cl-body" id="changelog-body"></div>
+      <div class="cl-footer">
+        <button class="cl-btn-cerca" onclick="cercaAggiornamenti()">🔍 Cerca aggiornamenti</button>
+        <button class="cl-btn-chiudi" onclick="chiudiChangelog()">Chiudi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL AGGIORNAMENTO -->
+  <div id="update-modal" class="cl-overlay hidden">
+    <div class="cl-box">
+      <div class="cl-header"><span>🔄 Aggiornamento disponibile!</span></div>
+      <div class="cl-body" id="update-modal-body"></div>
+      <div class="cl-footer">
+        <button class="cl-btn-cerca" onclick="applyUpdate(); chiudiUpdateModal()">⚡ Aggiorna ora</button>
+        <button class="cl-btn-chiudi" onclick="chiudiUpdateModal()">Più tardi</button>
       </div>
     </div>
   </div>
